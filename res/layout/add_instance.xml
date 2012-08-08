@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	    android:layout_width="match_parent"
+	    android:layout_height="match_parent"
+	    android:orientation="vertical" >
+	    
+	    <ScrollView 
+			android:layout_width="match_parent"
+		    android:layout_height="match_parent">
+
+			<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+				    android:layout_width="match_parent"
+				    android:layout_height="match_parent"
+				    android:orientation="vertical" >
+	        
+			    <TextView
+			        android:id="@+id/title_instance_source"
+			        android:layout_width="wrap_content"
+			        android:layout_height="wrap_content"
+			        android:layout_marginLeft="5dp"
+			        android:layout_marginTop="10dp"
+			        android:text="@string/title_instance_source"
+			        android:textAppearance="?android:attr/textAppearanceMedium" />
+				
+			    <Spinner
+			        android:id="@+id/spinner_source"
+			        android:layout_width="match_parent"
+			        android:layout_height="wrap_content" 
+			        android:layout_below="@+id/title_instance_source" />
+			    
+			    <TextView
+			        android:id="@+id/title_template_source"
+			        android:layout_width="wrap_content"
+			        android:layout_height="wrap_content"
+			        android:layout_alignLeft="@+id/title_instance_source"
+			        android:layout_below="@+id/spinner_source"
+			        android:layout_marginLeft="5dp"
+			        android:text="@string/title_template_source"
+			        android:textAppearance="?android:attr/textAppearanceMedium" />
+		
+			    <Spinner
+			        android:id="@+id/spinner_source_tmpl"
+			        android:layout_width="match_parent"
+			        android:layout_height="wrap_content" 
+			        android:layout_below="@+id/title_template_source" />
+		        
+			    <TextView
+			        android:id="@+id/title_svc_offering"
+			        android:layout_width="wrap_content"
+			        android:layout_height="wrap_content"
+			        android:layout_alignLeft="@+id/title_template_source"
+			        android:layout_below="@+id/spinner_source_tmpl"
+			        android:layout_marginLeft="5dp"
+			        android:text="@string/title_service_offering"
+			        android:textAppearance="?android:attr/textAppearanceMedium" />
+		
+			    <Spinner
+			        android:id="@+id/spinner_svc_offering"
+			        android:layout_width="match_parent"
+			        android:layout_height="wrap_content" 
+			        android:layout_below="@+id/title_svc_offering" />
+			    
+			    <TextView
+			        android:id="@+id/title_data_disk"
+			        android:layout_width="wrap_content"
+			        android:layout_height="wrap_content"
+			        android:layout_alignLeft="@+id/title_optional"
+			        android:layout_below="@+id/title_optional"
+			        android:layout_marginLeft="5dp"
+			        android:text="@string/title_disk_offering"
+			        android:textAppearance="?android:attr/textAppearanceMedium" />
+		
+			    <Spinner
+			        android:id="@+id/spinner_data_disk"
+			        android:layout_width="match_parent"
+			        android:layout_height="wrap_content" 
+			        android:layout_below="@+id/title_data_disk" />
+	
+			    <Button
+			        android:id="@+id/btn_Create"
+			        android:layout_width="150dp"
+			        android:layout_height="wrap_content"
+			        android:layout_below="@+id/spinner_data_disk"
+			        android:layout_centerHorizontal="true"
+			        android:layout_gravity="right"
+			        android:layout_marginTop="15dp"
+			        android:text="@string/next"
+			        android:onClick="nextStep" />
+
+		</LinearLayout>
+	</ScrollView>
+</LinearLayout>

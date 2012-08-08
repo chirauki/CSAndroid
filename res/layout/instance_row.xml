@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+      android:layout_width="fill_parent"
+    	android:layout_height="wrap_content">
+
+	<RelativeLayout
+	    android:id="@+id/relativeLayout1"
+	    android:layout_width="match_parent"
+	    android:layout_height="wrap_content" >
+
+	    <TextView
+	        xmlns:android="http://schemas.android.com/apk/res/android"
+	        android:id="@+id/txt_instance_name"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:layout_marginLeft="15dp"
+	        android:layout_marginTop="5dp"
+	        android:text="name"
+	        android:textSize="25px" />
+
+	    <TextView
+	        android:id="@+id/txt_instance_name_id"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:layout_alignLeft="@+id/txt_instance_name"
+	        android:layout_below="@+id/txt_instance_name"
+	        android:text="id"
+	        android:textSize="15px" />
+	    
+	    <TextView
+	        android:id="@+id/title_os_name"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:layout_alignLeft="@+id/txt_instance_name_id"
+	        android:layout_below="@+id/txt_instance_name_id"
+	        android:layout_marginTop="8dp"
+	        android:text="@string/instances_os_name"
+	        android:textSize="15px" />
+	    
+	    <TextView
+	        android:id="@+id/txt_os_name"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:layout_alignBaseline="@+id/title_os_name"
+	        android:layout_toRightOf="@+id/title_os_name"
+	        android:text="os_name"
+	        android:textSize="15px" />
+	    
+	    <TextView
+	        android:id="@+id/title_offering_name"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:layout_alignLeft="@+id/title_os_name"
+	        android:layout_below="@+id/title_os_name"
+	        android:text="@string/instances_offering"
+	        android:textSize="15px" />
+	    
+	    <TextView
+	        android:id="@+id/txt_offering_name"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:layout_alignBaseline="@+id/title_offering_name"
+	        android:layout_toRightOf="@+id/title_offering_name"
+	        android:text="offering"
+	        android:textSize="15px" />
+
+	     <TextView
+	        android:id="@+id/title_state"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:layout_alignLeft="@+id/title_offering_name"
+	        android:layout_below="@+id/title_offering_name"
+	        android:text="@string/instances_state"
+	        android:textSize="15px" />
+	    
+	    <TextView
+	        android:id="@+id/txt_state"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:layout_alignBaseline="@+id/title_state"
+	        android:layout_toRightOf="@+id/title_state"
+	        android:layout_marginBottom="5dp"
+	        android:text="offering"
+	        android:textSize="15px" />
+	    
+	</RelativeLayout>
+</LinearLayout>
