@@ -1,7 +1,11 @@
 package org.chirauki.CSAndroid;
 
+import java.util.HashMap;
+import java.util.concurrent.ExecutionException;
+
 import android.app.Activity;
 import android.database.Cursor;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -28,7 +32,6 @@ public class AddCloud extends Activity {
 		
 		mDbHelper = new CSAndroidDbAdapter(this);
 		//mDbHelper.open();
-		
 			
 		mRowId = null;
         
@@ -56,13 +59,27 @@ public class AddCloud extends Activity {
 		txtUser = (EditText) findViewById(R.id.clApiKey);
 		txtPass = (EditText) findViewById(R.id.clSecKey);
 		
-		CSAPIexecutor cs = new CSAPIexecutor(txtUrl.getText().toString());
-		cs.executeLogin(txtUser.getText().toString(), txtPass.getText().toString(), null);
+		HashMap<String, String> data = new HashMap<String, String>(); 
+ 		data.put("user", txtUser.getText().toString());
+ 		data.put("pass", txtPass.getText().toString());
+		data.put("url", txtUrl.getText().toString());
+		
+		try {
+			data = new doLogin().execute(data).get();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ExecutionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		//CSAPIexecutor cs = new CSAPIexecutor(txtUrl.getText().toString());
+		//cs.executeLogin(txtUser.getText().toString(), txtPass.getText().toString(), null);
 		
 		
 		if (mRowId == null) {
-			mDbHelper.createCloud(txtName.getText().toString(), 
-					txtUrl.getText().toString(), "blah", "blah", txtApikey.getText().toString(), txtSecretkey.getText().toString());
+			mDbHelper.createCloud(txtName.getText().toString(),
+					data.get("url"),"blah",	"blah",	data.get("apik"),data.get("secret"));
 		} else {
 			mDbHelper.updateCloud(mRowId, txtName.getText().toString(), txtUrl.getText().toString(), txtApikey.getText().toString(), txtSecretkey.getText().toString());
 		}
@@ -114,5 +131,36 @@ public class AddCloud extends Activity {
 		}
 		
 		mDbHelper.close();
+	}
+	
+	//private class doLogin extends AsyncTask<Params, Progress, Result> {
+	private class doLogin extends AsyncTask<HashMap<String, String>, Void, HashMap<String, String>> {
+		
+		@Override
+		protected void onPreExecute() {
+			// TODO Auto-generated method stub
+			super.onPreExecute();
+		}
+
+		@Override
+		protected HashMap<String, String> doInBackground(HashMap<String, String>... params) {
+			HashMap<String, String> data = params[0];
+			String apiUrl = data.get("url");
+			String user = data.get("user");
+			String pass = data.get("pass");
+			
+			CSAPIexecutor cs = new CSAPIexecutor(apiUrl);
+			cs.executeLogin(user, pass, null);
+		
+			data.put("apik", cs.getApiKey());
+			data.put("secret", cs.getApiSKey());
+			
+			return data;
+		}
+		
+		@Override
+		protected void onPostExecute(HashMap<String, String> result) {
+			super.onPostExecute(result);
+		}
 	}
 }

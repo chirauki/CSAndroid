@@ -16,6 +16,7 @@ import java.util.StringTokenizer;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
@@ -77,6 +78,14 @@ public class CSAPIexecutor {
 		host = h;
 	}
 	
+	public String getApiKey() {
+		return apiKey;
+	}
+
+	public String getApiSKey() {
+		return apiSKey;
+	}
+
 	public int getACC_TYPE() {
 		return ACC_TYPE;
 	}
@@ -416,16 +425,7 @@ public class CSAPIexecutor {
 		apiUrl = apiUrl + "&response=json";
 		
 		try {
-			//System.out.println("Constructing API call to host = '" + host + "' with API command = '" + apiUrl + "' using apiKey = '" + apiKey + "' and secretKey = '" + apiSKey + "'");
-			
-			// Step 1: Make sure your APIKey is toLowerCased and URL encoded
-			//String encodedApiKey = URLEncoder.encode(apiKey.toLowerCase(), "UTF-8");
-			
-			// Step 2: toLowerCase all the parameters, URL encode each parameter value, and the sort the parameters in alphabetical order
-			// Please note that if any parameters with a '&' as a value will cause this test client to fail since we are using '&' to delimit 
-			// the string
 			List sortedParams = new ArrayList();
-			//sortedParams.add("apikey="+encodedApiKey);
 			StringTokenizer st = new StringTokenizer(apiUrl, "&");
 			while (st.hasMoreTokens()) {
 				String paramValue = st.nextToken().toLowerCase();
@@ -434,13 +434,15 @@ public class CSAPIexecutor {
 				sortedParams.add(param + "=" + value);
 			}
 			Collections.sort(sortedParams);
-//			System.out.println("Sorted Parameters: " + sortedParams);
 			
 			builder = new StringBuilder();
 			HttpClient client = new DefaultHttpClient();
 			HttpGet httpGet = new HttpGet(host + "?" + apiUrl);
+			String jsesid = null;
 			try {
 				HttpResponse response = client.execute(httpGet);
+				Header[] h = response.getHeaders("Set-Cookie");
+				jsesid = h[0].getValue();
 				StatusLine statusLine = response.getStatusLine();
 				int statusCode = statusLine.getStatusCode();
 				if (statusCode == 200) {
@@ -455,93 +457,55 @@ public class CSAPIexecutor {
 				} else {
 					Log.e(CSAPIexecutor.class.toString(), "Failed to download file");
 				}
-			} catch (ClientProtocolException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
 			
-			String responseLogin = builder.toString();
-			JSONArray tmp1 = null;
-			JSONObject jObject = null;
-			String sesKey = null;
-			String acctName = null;
-			Integer domId = null;
-			try {
+			
+				String responseLogin = builder.toString();
+				JSONArray tmp1 = null;
+				JSONObject jObject = null;
+				String sesKey = null;
+				String acctName = null;
+				String domId = null;
 				jObject = new JSONObject(responseLogin);
 				JSONObject tmp = (JSONObject) jObject.get("loginresponse");
 				sesKey = tmp.getString("sessionkey");
 				acctName = tmp.getString("account");
-				domId = tmp.getInt("domainid");
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+				domId = tmp.getString("domainid");
 			
-			//apiUrl = "command=listAccounts&name=" + acctName + "&domainid=" + domId;
-			apiUrl = "command=listAccounts";
-			
-			// Step 1: Make sure your APIKey is toLowerCased and URL encoded
-			//String encodedApiKey = URLEncoder.encode(apiKey.toLowerCase(), "UTF-8");
-			
-			// Step 2: toLowerCase all the parameters, URL encode each parameter value, and the sort the parameters in alphabetical order
-			// Please note that if any parameters with a '&' as a value will cause this test client to fail since we are using '&' to delimit 
-			// the string
-			sortedParams = new ArrayList();
-			//sortedParams.add("apikey="+encodedApiKey);
-			st = new StringTokenizer(apiUrl, "&");
-			while (st.hasMoreTokens()) {
-				String paramValue = st.nextToken().toLowerCase();
-				String param = paramValue.substring(0, paramValue.indexOf("="));
-				String value = URLEncoder.encode(paramValue.substring(paramValue.indexOf("=")+1, paramValue.length()), "UTF-8");
-				sortedParams.add(param + "=" + value);
-			}
-			Collections.sort(sortedParams);
-			//System.out.println("Sorted Parameters: " + sortedParams);
-			
-			// Step 3: Construct the sorted URL and sign and URL encode the sorted URL with your secret key
-			String sortedUrl = null;
-			boolean first = true;
-			//for (String param : sortedParams) {
-			for (Object elem: sortedParams) {
-				String param = (String)elem;
-				if (first) {
-					sortedUrl = param;
-					first = false;
-				} else {
-					sortedUrl = sortedUrl + "&" + param;
-				}
-			}
-			
-			//String encodedSignature = signRequest(sortedUrl, apiSKey);
-			String encodedSignature = signRequest(sortedUrl, sesKey);
-			
-			// Step 4: Construct the final URL we want to send to the CloudStack Management Server
-			// Final result should look like:
-			// http(s)://://client/api?&apiKey=&signature=
-			//String finalUrl = host + "?" + apiUrl + "&apiKey=" + apiKey + "&signature=" + encodedSignature;
-			String finalUrl = host + "?" + apiUrl + "&sessionkey=" + URLEncoder.encode(sesKey, "UTF-8");
-;
-			
-			// Step 5: Perform a HTTP GET on this URL to execute the command
-			builder = new StringBuilder();
-			client = new DefaultHttpClient();
-			httpGet = new HttpGet(finalUrl);
-			try {
-				HttpResponse response = client.execute(httpGet);
-				StatusLine statusLine = response.getStatusLine();
-				int statusCode = statusLine.getStatusCode();
-				//if (statusCode == 200) {
+				apiUrl = "response=json&command=listAccounts&sessionkey=" + URLEncoder.encode(sesKey, "UTF-8");
+				
+				String finalUrl = host + "?" + apiUrl;
+				
+				httpGet = new HttpGet(finalUrl);
+				response = client.execute(httpGet);
+				statusLine = response.getStatusLine();
+				statusCode = statusLine.getStatusCode();
+				if (statusCode == 200) {
 					HttpEntity entity = response.getEntity();
 					InputStream content = entity.getContent();
 					BufferedReader reader = new BufferedReader(
 							new InputStreamReader(content));
 					String line;
+					builder.delete(0, builder.capacity());
 					while ((line = reader.readLine()) != null) {
 						builder.append(line);
 					}
-				//} else {
+					jObject = new JSONObject(builder.toString());
+					JSONObject tmp2 = (JSONObject) jObject.get("listaccountsresponse");
+					JSONArray acc = tmp2.getJSONArray("account");
+					for(int i = 0; i < acc.length(); i++) {
+						JSONObject account = acc.getJSONObject(i);
+						JSONArray users = account.getJSONArray("user");
+						for(int j = 0; j < users.length(); j++) {
+							JSONObject user = users.getJSONObject(j);
+							if (user.getString("username").equals(username)) {
+								apiKey = user.getString("apikey");
+								apiSKey = user.getString("secretkey");
+							}
+						}
+					}
+				} else {
 					Log.e(CSAPIexecutor.class.toString(), "Failed to download file");
-				//}
+				}
 			} catch (ClientProtocolException e) {
 				e.printStackTrace();
 			} catch (IOException e) {
