@@ -5,9 +5,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.math.BigInteger;
+import java.net.CookieHandler;
+import java.net.CookieManager;
+import java.net.MalformedURLException;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.cert.TrustAnchor;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -15,8 +23,12 @@ import java.util.StringTokenizer;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.X509TrustManager;
 
-import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
@@ -31,6 +43,8 @@ import org.json.JSONObject;
 import android.util.Log;
 
 public class CSAPIexecutor {
+	private DefaultHttpClient client = new DefaultHttpClient();
+	
 	private String host; //en la forma http://host/api
 	private String apiKey; // api key del cloud.com
 	private String apiSKey; // secret key
@@ -39,7 +53,9 @@ public class CSAPIexecutor {
 	private int ACC_ID;
 	private String DOM_NAME = "";
 	private int DOM_ID;
-	
+	private String jSessionId;
+	CookieManager cookieManager = new CookieManager();
+		
 	private static final String JSON = "&response=json";
 	private static final String ASYNC_QUERY = "command=queryAsyncJobResult&jobid=";
 	private static final String LIST_VM = "command=listVirtualMachines";
@@ -71,11 +87,13 @@ public class CSAPIexecutor {
 		apiKey = ak;
 		apiSKey = ask;
 		whoAmI();
+		CookieHandler.setDefault(cookieManager);
 	}
 	
 	public CSAPIexecutor(String h) {
 		super();
 		host = h;
+		CookieHandler.setDefault(cookieManager);
 	}
 	
 	public String getApiKey() {
@@ -436,85 +454,43 @@ public class CSAPIexecutor {
 			Collections.sort(sortedParams);
 			
 			builder = new StringBuilder();
-			HttpClient client = new DefaultHttpClient();
-			HttpGet httpGet = new HttpGet(host + "?" + apiUrl);
-			String jsesid = null;
+			String finalUrl = host + "?" + apiUrl;
+			HttpGet httpGet = new HttpGet(finalUrl);
 			try {
-				HttpResponse response = client.execute(httpGet);
-				Header[] h = response.getHeaders("Set-Cookie");
-				jsesid = h[0].getValue();
-				StatusLine statusLine = response.getStatusLine();
-				int statusCode = statusLine.getStatusCode();
-				if (statusCode == 200) {
-					HttpEntity entity = response.getEntity();
-					InputStream content = entity.getContent();
-					BufferedReader reader = new BufferedReader(
-							new InputStreamReader(content));
-					String line;
-					while ((line = reader.readLine()) != null) {
-						builder.append(line);
-					}
-				} else {
-					Log.e(CSAPIexecutor.class.toString(), "Failed to download file");
-				}
-			
-			
-				String responseLogin = builder.toString();
+				
+				String responseLogin = executeHttpRequest(host + "?" + apiUrl);
 				JSONArray tmp1 = null;
 				JSONObject jObject = null;
 				String sesKey = null;
-				String acctName = null;
-				String domId = null;
 				jObject = new JSONObject(responseLogin);
 				JSONObject tmp = (JSONObject) jObject.get("loginresponse");
 				sesKey = tmp.getString("sessionkey");
-				acctName = tmp.getString("account");
-				domId = tmp.getString("domainid");
 			
 				apiUrl = "response=json&command=listAccounts&sessionkey=" + URLEncoder.encode(sesKey, "UTF-8");
 				
-				String finalUrl = host + "?" + apiUrl;
+				finalUrl = host + "?" + apiUrl;
 				
-				httpGet = new HttpGet(finalUrl);
-				response = client.execute(httpGet);
-				statusLine = response.getStatusLine();
-				statusCode = statusLine.getStatusCode();
-				if (statusCode == 200) {
-					HttpEntity entity = response.getEntity();
-					InputStream content = entity.getContent();
-					BufferedReader reader = new BufferedReader(
-							new InputStreamReader(content));
-					String line;
-					builder.delete(0, builder.capacity());
-					while ((line = reader.readLine()) != null) {
-						builder.append(line);
-					}
-					jObject = new JSONObject(builder.toString());
-					JSONObject tmp2 = (JSONObject) jObject.get("listaccountsresponse");
-					JSONArray acc = tmp2.getJSONArray("account");
-					for(int i = 0; i < acc.length(); i++) {
-						JSONObject account = acc.getJSONObject(i);
-						JSONArray users = account.getJSONArray("user");
-						for(int j = 0; j < users.length(); j++) {
-							JSONObject user = users.getJSONObject(j);
-							if (user.getString("username").equals(username)) {
-								apiKey = user.getString("apikey");
-								apiSKey = user.getString("secretkey");
-							}
+				responseLogin = executeHttpRequest(finalUrl);
+				jObject = new JSONObject(responseLogin);
+				JSONObject tmp2 = (JSONObject) jObject.get("listaccountsresponse");
+				JSONArray acc = tmp2.getJSONArray("account");
+				for(int i = 0; i < acc.length(); i++) {
+					JSONObject account = acc.getJSONObject(i);
+					JSONArray users = account.getJSONArray("user");
+					for(int j = 0; j < users.length(); j++) {
+						JSONObject user = users.getJSONObject(j);
+						if (user.getString("username").equals(username)) {
+							apiKey = user.getString("apikey");
+							apiSKey = user.getString("secretkey");
 						}
 					}
-				} else {
-					Log.e(CSAPIexecutor.class.toString(), "Failed to download file");
 				}
-			} catch (ClientProtocolException e) {
-				e.printStackTrace();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		//return httpResponse;
 		return builder.toString();	
 	}
 	
@@ -568,9 +544,9 @@ public class CSAPIexecutor {
 			// Final result should look like:
 			// http(s)://://client/api?&apiKey=&signature=
 			String finalUrl = host + "?" + apiUrl + "&apiKey=" + apiKey + "&signature=" + encodedSignature;
-			
+			return executeHttpRequest(finalUrl);
 			// Step 5: Perform a HTTP GET on this URL to execute the command
-			builder = new StringBuilder();
+			/*builder = new StringBuilder();
 			HttpClient client = new DefaultHttpClient();
 			HttpGet httpGet = new HttpGet(finalUrl);
 			try {
@@ -593,12 +569,12 @@ public class CSAPIexecutor {
 				e.printStackTrace();
 			} catch (IOException e) {
 				e.printStackTrace();
-			}
+			}*/
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		//return httpResponse;
-		return builder.toString();
+		return "";
 	}
 	
 	/**
@@ -608,9 +584,9 @@ public class CSAPIexecutor {
 	 * 
 	 * @param request
 	 * @param key
-	 * @return
+	 * @return HMAC-SHA1 signature
 	 */
-	public static String signRequest(String request, String key) {
+	public String signRequest(String request, String key) {
 		try {
 			Mac mac = Mac.getInstance("HmacSHA1");
 			SecretKeySpec keySpec = new SecretKeySpec(key.getBytes(), "HmacSHA1");
@@ -624,7 +600,12 @@ public class CSAPIexecutor {
 		return null;
 	}
 	
-	public static String hashPassword(String password) {
+	/**
+	 * Returns an MD5 password hash for the password provided
+	 * @param password The password to be hashed
+	 * @return The md5 password hash for password
+	 */
+	public String hashPassword(String password) {
 		String hashword = null;
 		try {
 			MessageDigest md5 = MessageDigest.getInstance("MD5");
@@ -636,4 +617,58 @@ public class CSAPIexecutor {
 		}
 		return hashword;
 	}
+	
+	public String executeHttpRequest(String req) {
+		String responseText = "";
+		HttpResponse reqResponse = null;
+		StatusLine statusLine;
+		int statusCode;
+		StringBuilder builder = new StringBuilder();
+		URL url;
+		trustEveryone();
+		try {
+			url = new URL(req);
+			final HttpGet httpGet = new HttpGet(url.toString());
+			reqResponse =  client.execute(httpGet);
+			statusLine = reqResponse.getStatusLine();
+			statusCode = statusLine.getStatusCode();
+			if (statusCode == 200) {
+				HttpEntity entity = reqResponse.getEntity();
+				InputStream content = entity.getContent();
+				BufferedReader reader = new BufferedReader(
+						new InputStreamReader(content));
+				String line;
+				builder.delete(0, builder.capacity());
+				while ((line = reader.readLine()) != null) {
+					builder.append(line);
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		responseText = builder.toString();
+		return responseText;
+	}
+	
+	private void trustEveryone() { 
+	    try { 
+	            HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier(){ 
+	                    public boolean verify(String hostname, SSLSession session) { 
+	                            return true; 
+	                    }}); 
+	            SSLContext context = SSLContext.getInstance("TLS"); 
+	            context.init(null, new X509TrustManager[]{new X509TrustManager(){ 
+	                    public void checkClientTrusted(X509Certificate[] chain, 
+	                                    String authType) {} 
+	                    public void checkServerTrusted(X509Certificate[] chain, 
+	                                    String authType) {} 
+	                    public X509Certificate[] getAcceptedIssuers() { 
+	                            return new X509Certificate[0]; 
+	                    }}}, new SecureRandom()); 
+	            HttpsURLConnection.setDefaultSSLSocketFactory( 
+	                            context.getSocketFactory()); 
+	    } catch (Exception e) { // should never happen 
+	            e.printStackTrace(); 
+	    } 
+	} 
 }
