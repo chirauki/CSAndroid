@@ -1,5 +1,7 @@
 package org.chirauki.CSAndroid;
 
+import java.util.concurrent.ExecutionException;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -74,6 +76,16 @@ public class Overview_Tab extends Activity {
     	
     	CSAPIexecutor client = new CSAPIexecutor(clUrl, clApik, clSeck);
         
+    	JSONObject account;
+    	try {
+    		account = client.whoAmI();
+		} catch (InterruptedException e1) {
+			e1.printStackTrace();
+			return;
+		} catch (ExecutionException e1) {
+			e1.printStackTrace();
+			return;
+		}
     	//get instances
     	JSONArray vms = client.listVirtualMachines();
     	try {
@@ -222,30 +234,6 @@ public class Overview_Tab extends Activity {
     		tv.setText(maxTmpl.toString());
     	}
     	
-	}
-	
-	private class queryAPI extends AsyncTask<CSAPIexecutor, Void, Void> {
-
-		@Override
-		protected Void doInBackground(CSAPIexecutor... params) {
-			// TODO Auto-generated method stub
-			
-			return null;
-		}
-
-		@Override
-		protected void onPostExecute(Void result) {
-			// TODO Auto-generated method stub
-			super.onPostExecute(result);
-		}
-
-		@Override
-		protected void onPreExecute() {
-			// TODO Auto-generated method stub
-			
-			super.onPreExecute();
-		}
-		
 	}
 }
 

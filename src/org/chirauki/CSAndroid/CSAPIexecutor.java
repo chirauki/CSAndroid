@@ -7,19 +7,17 @@ import java.io.InputStreamReader;
 import java.math.BigInteger;
 import java.net.CookieHandler;
 import java.net.CookieManager;
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.security.cert.TrustAnchor;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.StringTokenizer;
+import java.util.concurrent.ExecutionException;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -32,14 +30,13 @@ import javax.net.ssl.X509TrustManager;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import android.os.AsyncTask;
 import android.util.Log;
 
 public class CSAPIexecutor {
@@ -86,7 +83,13 @@ public class CSAPIexecutor {
 		host = h;
 		apiKey = ak;
 		apiSKey = ask;
-		whoAmI();
+		try {
+			whoAmI();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		} catch (ExecutionException e) {
+			e.printStackTrace();
+		}
 		CookieHandler.setDefault(cookieManager);
 	}
 	
@@ -387,8 +390,8 @@ public class CSAPIexecutor {
 		return new JSONArray();
 	}
 		
-	public JSONObject whoAmI() {
-		String response = executeRequest(LIST_ACCOUNTS + JSON);
+	public JSONObject whoAmI() throws InterruptedException, ExecutionException {
+		String response = new executeRequest().execute(LIST_ACCOUNTS + JSON).get();
 		JSONObject jObject = null;
 		try {
 			jObject = new JSONObject(response);
@@ -494,6 +497,49 @@ public class CSAPIexecutor {
 		return builder.toString();	
 	}
 	
+	private class executeRequest extends AsyncTask<String, Void, String> {
+		StringBuilder builder = null;
+		
+		@Override
+		protected String doInBackground(String... params) {
+			try {
+				String apiUrl = params[0];
+				String encodedApiKey = URLEncoder.encode(apiKey.toLowerCase(), "UTF-8");
+				
+				List sortedParams = new ArrayList();
+				sortedParams.add("apikey="+encodedApiKey);
+				StringTokenizer st = new StringTokenizer(apiUrl, "&");
+				while (st.hasMoreTokens()) {
+					String paramValue = st.nextToken().toLowerCase();
+					String param = paramValue.substring(0, paramValue.indexOf("="));
+					String value = URLEncoder.encode(paramValue.substring(paramValue.indexOf("=")+1, paramValue.length()), "UTF-8");
+					sortedParams.add(param + "=" + value);
+				}
+				Collections.sort(sortedParams);
+
+				String sortedUrl = null;
+				boolean first = true;
+				for (Object elem: sortedParams) {
+					String param = (String)elem;
+					if (first) {
+						sortedUrl = param;
+						first = false;
+					} else {
+						sortedUrl = sortedUrl + "&" + param;
+					}
+				}
+				
+				String encodedSignature = signRequest(sortedUrl, apiSKey);
+				
+				String finalUrl = host + "?" + apiUrl + "&apiKey=" + apiKey + "&signature=" + encodedSignature;
+				return executeHttpRequest(finalUrl);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			return "";
+		}
+		
+	}
 	/**
 	 * Executes apiUrl request and returns the String object containing the response.
 	 * 

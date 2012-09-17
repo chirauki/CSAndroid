@@ -1,5 +1,7 @@
 package org.chirauki.CSAndroid;
 
+import java.util.concurrent.ExecutionException;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -123,11 +125,17 @@ public class CSAndroidDbAdapter {
         //String username = "";
         String firstname = "";
         String lastname = "";
-        JSONObject user = client.whoAmI();
-        try {
-        	//username = user.getString("username");
-	        firstname = user.getString("firstname");
+        JSONObject user;
+		try {
+			user = client.whoAmI();
+			firstname = user.getString("firstname");
 	        lastname = user.getString("lastname");
+		} catch (InterruptedException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (ExecutionException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
         } catch (JSONException e) {
         	e.printStackTrace();
         }
@@ -220,12 +228,17 @@ public class CSAndroidDbAdapter {
         String username = "";
         String firstname = "";
         String lastname = "";
-        JSONObject user = client.whoAmI();
-        try {
-        	username = user.getString("username");
+        JSONObject user;
+		try {
+			user = client.whoAmI();
+			username = user.getString("username");
 	        firstname = user.getString("firstname");
 	        lastname = user.getString("lastname");
-        } catch (JSONException e) {
+		} catch (InterruptedException e1) {
+			e1.printStackTrace();
+		} catch (ExecutionException e1) {
+			e1.printStackTrace();
+		} catch (JSONException e) {
         	e.printStackTrace();
         }
         

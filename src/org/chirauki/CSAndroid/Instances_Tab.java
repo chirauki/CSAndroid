@@ -3,6 +3,7 @@ package org.chirauki.CSAndroid;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -209,7 +210,16 @@ public class Instances_Tab extends ListActivity {
     	List<HashMap<String, String>> instances = new ArrayList<HashMap<String, String>>();
     	
     	//get instances
-    	JSONArray vms = client.listVirtualMachines();
+    	JSONArray vms;
+		try {
+			vms = new refresh().execute().get();
+		} catch (InterruptedException e1) {
+			e1.printStackTrace();
+			return null;
+		} catch (ExecutionException e1) {
+			e1.printStackTrace();
+			return null;
+		}
     	try {
     		for (int i = 0; i < vms.length(); i++) {
     			JSONObject tmpvm = (JSONObject) vms.getJSONObject(i);
@@ -285,19 +295,12 @@ public class Instances_Tab extends ListActivity {
 		}
 	}
 	
-	private class refresh extends AsyncTask<Void, Void, Void> {
+	private class refresh extends AsyncTask<Void, Void, JSONArray> {
 		@Override
-		protected Void doInBackground(Void... params) {
-			// TODO Auto-generated method stub
-			while (true) {
-				fillList();
-				try {
-					Thread.sleep(3000);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
+		protected JSONArray doInBackground(Void... params) {
+			JSONArray vms;
+			vms = client.listVirtualMachines();
+			return vms;
 		}
 	}
 }
