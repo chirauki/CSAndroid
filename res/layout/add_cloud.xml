@@ -56,7 +56,7 @@
 		        android:textAppearance="?android:attr/textAppearanceMedium" />
 		
 		    <EditText
-		        android:id="@+id/clApiKey"
+		        android:id="@+id/clUsername"
 		        android:layout_width="match_parent"
 		        android:layout_height="wrap_content"
 		        android:singleLine="true" />
@@ -69,11 +69,23 @@
 		        android:textAppearance="?android:attr/textAppearanceMedium" />
 		
 		    <EditText
-		        android:id="@+id/clSecKey"
+		        android:id="@+id/clPass"
 		        android:layout_width="match_parent"
 		        android:layout_height="wrap_content"
 		        android:inputType="textPassword" />
 		
+		    <TextView
+		        android:id="@+id/textView4"
+		        android:layout_width="wrap_content"
+		        android:layout_height="wrap_content"
+		        android:text="@string/domain"
+		        android:textAppearance="?android:attr/textAppearanceMedium" />
+		
+		    <EditText
+		        android:id="@+id/clDomain"
+		        android:layout_width="match_parent"
+		        android:layout_height="wrap_content" />
+		    
 		    <Button
 		        android:id="@+id/btnSaveCloud"
 		        android:layout_width="wrap_content"

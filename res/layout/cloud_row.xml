@@ -43,29 +43,29 @@
 	        android:layout_height="wrap_content"
 	        android:layout_alignBaseline="@+id/tv1"
 	        android:layout_alignBottom="@+id/tv1"
-	        android:layout_toRightOf="@+id/tv1"
-	        android:layout_marginRight="2dp"
 	        android:layout_marginLeft="2dp"
-	        android:text="TextView" />
+	        android:layout_marginRight="2dp"
+	        android:layout_toRightOf="@+id/tv1"
+	        android:text="@string/domain" />
 
 	    <TextView
-	        android:id="@+id/txt_lastname"
+	        android:id="@+id/txt_domain"
 	        android:layout_width="wrap_content"
 	        android:layout_height="wrap_content"
 	        android:layout_alignBaseline="@+id/txt_firstname"
 	        android:layout_alignBottom="@+id/txt_firstname"
-	        android:layout_toRightOf="@+id/txt_firstname"
-	        android:layout_marginRight="2dp"
 	        android:layout_marginLeft="2dp"
+	        android:layout_marginRight="2dp"
+	        android:layout_toRightOf="@+id/txt_firstname"
 	        android:text="TextView" />
 	    
 	    <TextView
 	        android:id="@+id/tv2"
 	        android:layout_width="wrap_content"
 	        android:layout_height="wrap_content"
-	        android:layout_alignBaseline="@+id/txt_lastname"
-	        android:layout_alignBottom="@+id/txt_lastname"
-	        android:layout_toRightOf="@+id/txt_lastname"
+	        android:layout_alignBaseline="@+id/txt_domain"
+	        android:layout_alignBottom="@+id/txt_domain"
+	        android:layout_toRightOf="@+id/txt_domain"
 	        android:layout_marginLeft="2dp"
 	        android:text=")" />
 	    

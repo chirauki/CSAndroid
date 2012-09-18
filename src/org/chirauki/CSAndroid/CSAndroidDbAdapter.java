@@ -2,10 +2,10 @@ package org.chirauki.CSAndroid;
 
 import java.util.concurrent.ExecutionException;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import android.app.Dialog;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -13,6 +13,7 @@ import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
+import android.widget.Toast;
 
 public class CSAndroidDbAdapter {
 
@@ -22,6 +23,7 @@ public class CSAndroidDbAdapter {
     public static final String KEY_SECK = "secretkey";
     public static final String KEY_USERNAME = "username";
     public static final String KEY_PASS = "password";
+    public static final String KEY_DOMAIN = "domain";
     public static final String KEY_FIRSTNAME = "firstname";
     public static final String KEY_LASTNAME = "lastname";
     public static final String KEY_USRTYPE = "usertype";
@@ -38,17 +40,18 @@ public class CSAndroidDbAdapter {
         "create table clouds (_id integer primary key autoincrement, "
 		+ "name text not null, "
 		+ "url text not null, "
-		+ "apikey text not null, "
-		+ "secretkey text not null, "
+		+ "apikey text, "
+		+ "secretkey text, "
 		+ "username text not null, "
 		+ "password text not null, "
+		+ "domain text not null, "
 		+ "firstname text not null, "
 		+ "lastname text not null, "
 		+ "usertype text not null);";
 
     private static final String DATABASE_NAME = "csandroid";
     private static final String DATABASE_TABLE = "clouds";
-    private static final int DATABASE_VERSION = 5;
+    private static final int DATABASE_VERSION = 6;
 
     private final Context mCtx;
 
@@ -112,56 +115,48 @@ public class CSAndroidDbAdapter {
      * @param body the body of the note
      * @return rowId or -1 if failed
      */
-    public long createCloud(String name, String url, String username, String password, String apikey, String secretkey) {
+    public long createCloud(String name, String url, 
+    		String username, String password, String domain) {
         ContentValues initialValues = new ContentValues();
         initialValues.put(KEY_NAME, name);
         initialValues.put(KEY_URL, url);
-        initialValues.put(KEY_USERNAME, username);
         initialValues.put(KEY_PASS, password);
-        initialValues.put(KEY_APIK, apikey);
-        initialValues.put(KEY_SECK, secretkey);
         
-        CSAPIexecutor client = new CSAPIexecutor(url, apikey, secretkey);
-        //String username = "";
-        String firstname = "";
-        String lastname = "";
-        JSONObject user;
-		try {
-			user = client.whoAmI();
-			firstname = user.getString("firstname");
-	        lastname = user.getString("lastname");
-		} catch (InterruptedException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (ExecutionException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-        } catch (JSONException e) {
-        	e.printStackTrace();
-        }
-        
-        /*
-         * account types are 
-         * 1 (admin), 
-         * 2 (domain-admin), and 
-         * 0 (user).
-         */
-        String usertype = "";
-        switch (client.getACC_TYPE()) {
-        case 0:
-        	usertype = "User"; break;
-        case 1:
-        	usertype = "Global Admin"; break;
-        case 2:
-        	usertype = "Domain Admin"; break;
-        } 
-        
-        //initialValues.put(KEY_USERNAME, username);
-        initialValues.put(KEY_FIRSTNAME, firstname);
-        initialValues.put(KEY_LASTNAME, lastname);
-        initialValues.put(KEY_USRTYPE, usertype);
-
-        return mDb.insert(DATABASE_TABLE, null, initialValues);
+        CSAPIexecutor client = new CSAPIexecutor(url, username, password, domain, mCtx);
+         
+		if(client.loginUser()) {
+			/*
+	         * account types are 
+	         * 1 (admin), 
+	         * 2 (domain-admin), and 
+	         * 0 (user).
+	         */
+	        String usertype = "";
+	        switch (client.getCsAccountType()) {
+	        case 0:
+	        	usertype = "User"; break;
+	        case 1:
+	        	usertype = "Global Admin"; break;
+	        case 2:
+	        	usertype = "Domain Admin"; break;
+	        } 
+	        
+	        initialValues.put(KEY_USERNAME, client.getCsUserName());
+	        initialValues.put(KEY_FIRSTNAME, client.getCsFirstName());
+	        initialValues.put(KEY_LASTNAME, client.getCsLastName());
+	        initialValues.put(KEY_DOMAIN, client.getCsDomain());
+	        initialValues.put(KEY_USRTYPE, usertype);
+	        
+	        if(client.getCsApiKey() != null) {
+	        	//fill api and secretkey
+	        	initialValues.put(KEY_APIK, client.getCsApiKey());
+	        	initialValues.put(KEY_SECK, client.getCsSecretKey());
+	        }
+	        return mDb.insert(DATABASE_TABLE, null, initialValues);
+		} else {
+			Toast.makeText(mCtx, "Could not login to CloudStack", Toast.LENGTH_SHORT).show();
+			return 0;
+		}
     }
 
     /**
@@ -182,8 +177,10 @@ public class CSAndroidDbAdapter {
      */
     public Cursor fetchAllClouds() {
 
-        return mDb.query(DATABASE_TABLE, new String[] {KEY_ROWID, KEY_NAME,
-                KEY_URL, KEY_APIK, KEY_SECK, KEY_USERNAME, KEY_PASS, KEY_FIRSTNAME, KEY_LASTNAME, KEY_USRTYPE}, null, null, null, null, null);
+        return mDb.query(DATABASE_TABLE, new String[] {KEY_ROWID, KEY_NAME, 
+                KEY_URL, KEY_APIK, KEY_SECK, KEY_USERNAME, KEY_PASS, KEY_DOMAIN, 
+                KEY_FIRSTNAME, KEY_LASTNAME, KEY_USRTYPE}, null, null, null, null, null);
+        
     }
 
     /**
@@ -217,53 +214,48 @@ public class CSAndroidDbAdapter {
      * @param body value to set note body to
      * @return true if the note was successfully updated, false otherwise
      */
-    public boolean updateCloud(long rowId, String name, String url, String apikey, String secretkey) {
-        ContentValues args = new ContentValues();
-        args.put(KEY_NAME, name);
-        args.put(KEY_URL, url);
-        args.put(KEY_APIK, apikey);
-        args.put(KEY_SECK, secretkey);
-
-        CSAPIexecutor client = new CSAPIexecutor(url, apikey, secretkey);
-        String username = "";
-        String firstname = "";
-        String lastname = "";
-        JSONObject user;
-		try {
-			user = client.whoAmI();
-			username = user.getString("username");
-	        firstname = user.getString("firstname");
-	        lastname = user.getString("lastname");
-		} catch (InterruptedException e1) {
-			e1.printStackTrace();
-		} catch (ExecutionException e1) {
-			e1.printStackTrace();
-		} catch (JSONException e) {
-        	e.printStackTrace();
-        }
+    public boolean updateCloud(long rowId, String name, String url, 
+    		String username, String password, String domain) {
+    	ContentValues initialValues = new ContentValues();
+        initialValues.put(KEY_NAME, name);
+        initialValues.put(KEY_URL, url);
+        initialValues.put(KEY_PASS, password);
         
-        /*
-         * account types are 
-         * 1 (admin), 
-         * 2 (domain-admin), and 
-         * 0 (user).
-         */
-        String usertype = "";
-        switch (client.getACC_TYPE()) {
-        case 0:
-        	usertype = "User"; break;
-        case 1:
-        	usertype = "Global Admin"; break;
-        case 2:
-        	usertype = "Domain Admin"; break;
-        } 
-        
-        args.put(KEY_USERNAME, username);
-        args.put(KEY_FIRSTNAME, firstname);
-        args.put(KEY_LASTNAME, lastname);
-        args.put(KEY_USRTYPE, usertype);
-        
-        return mDb.update(DATABASE_TABLE, args, KEY_ROWID + "=" + rowId, null) > 0;
+        CSAPIexecutor client = new CSAPIexecutor(url, username, password, domain, mCtx);
+         
+		if(client.loginUser()) {
+			/*
+	         * account types are 
+	         * 1 (admin), 
+	         * 2 (domain-admin), and 
+	         * 0 (user).
+	         */
+	        String usertype = "";
+	        switch (client.getCsAccountType()) {
+	        case 0:
+	        	usertype = "User"; break;
+	        case 1:
+	        	usertype = "Global Admin"; break;
+	        case 2:
+	        	usertype = "Domain Admin"; break;
+	        } 
+	        
+	        initialValues.put(KEY_USERNAME, client.getCsUserName());
+	        initialValues.put(KEY_FIRSTNAME, client.getCsFirstName());
+	        initialValues.put(KEY_LASTNAME, client.getCsLastName());
+	        initialValues.put(KEY_DOMAIN, client.getCsDomain());
+	        initialValues.put(KEY_USRTYPE, usertype);
+	        
+	        if(client.getCsApiKey() != null) {
+	        	//fill api and secretkey
+	        	initialValues.put(KEY_APIK, client.getCsApiKey());
+	        	initialValues.put(KEY_SECK, client.getCsSecretKey());
+	        }
+	        return mDb.update(DATABASE_TABLE, initialValues, KEY_ROWID + "=" + rowId, null) > 0;
+		} else {
+			Toast.makeText(mCtx, "Could not login to CloudStack", Toast.LENGTH_SHORT).show();
+			return false;
+		}
     }
     
     public void deleteAll() {

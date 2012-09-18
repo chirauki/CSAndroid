@@ -54,7 +54,9 @@ public class CSAndroid extends ListActivity {
 		in.putExtra("clurl", c.getString(c.getColumnIndexOrThrow(CSAndroidDbAdapter.KEY_URL)).trim());
 		in.putExtra("clapik", c.getString(c.getColumnIndexOrThrow(CSAndroidDbAdapter.KEY_APIK)).trim());
 		in.putExtra("clseck", c.getString(c.getColumnIndexOrThrow(CSAndroidDbAdapter.KEY_SECK)).trim());
+		
 		mDbHelper.close();
+		
 		startActivity(in);
 	}
 
@@ -72,7 +74,6 @@ public class CSAndroid extends ListActivity {
                 newCloud();
                 return true;
         }
-
         return super.onMenuItemSelected(featureId, item);
     }
  
@@ -86,25 +87,23 @@ public class CSAndroid extends ListActivity {
 
 	@Override
 	public boolean onContextItemSelected(MenuItem item) {
-		// TODO Auto-generated method stub
 		super.onContextItemSelected(item);
-		mDbHelper.open();
+		
 		switch (item.getItemId()) {
 			case CTXDELETE_ID:
+				mDbHelper.open();
 				AdapterContextMenuInfo infodel = (AdapterContextMenuInfo) item.getMenuInfo();
 				mDbHelper.deleteCloud(infodel.id);
-				fillCloudList();
 				mDbHelper.close();
+				fillCloudList();
 				return true;
 			case CTXEDIT_ID:
 				AdapterContextMenuInfo infoed = (AdapterContextMenuInfo) item.getMenuInfo();
 				Intent in = new Intent(this, AddCloud.class);
 				in.putExtra("clid", infoed.id);
-				startActivityForResult(in, REQ_EDIT);
-				mDbHelper.close();
+				startActivityForResult(in, REQ_EDIT);		
 				return true;
 		}
-		mDbHelper.close();
 		return true;
 	}
     
@@ -121,11 +120,12 @@ public class CSAndroid extends ListActivity {
     	// Create an array to specify the fields we want to display in the list (only TITLE)
         //String[] from = new String[]{CSAndroidDbAdapter.KEY_ROWID,CSAndroidDbAdapter.KEY_NAME};
     	String[] from = new String[]{CSAndroidDbAdapter.KEY_NAME, CSAndroidDbAdapter.KEY_USERNAME,
-    			CSAndroidDbAdapter.KEY_FIRSTNAME, CSAndroidDbAdapter.KEY_LASTNAME, CSAndroidDbAdapter.KEY_USRTYPE};
+    			CSAndroidDbAdapter.KEY_DOMAIN, CSAndroidDbAdapter.KEY_USRTYPE};
 
         // and an array of the fields we want to bind those fields to (in this case just text1)
         //int[] to = new int[]{R.id.row_ID, R.id.row_name};
-        int[] to = new int[]{R.id.cloud_name, R.id.txt_username, R.id.txt_firstname, R.id.txt_lastname, R.id.txt_usertype};
+        int[] to = new int[]{R.id.cloud_name, R.id.txt_username, 
+        		 R.id.txt_domain, R.id.txt_usertype};
 
         // Now create a simple cursor adapter and set it to display
         SimpleCursorAdapter clouds = new SimpleCursorAdapter(this, R.layout.cloud_row, allclouds, from, to);
@@ -145,6 +145,6 @@ public class CSAndroid extends ListActivity {
 	protected void onResume() {
 		// TODO Auto-generated method stub
 		super.onResume();
-		fillCloudList();
+		if(this.getListAdapter().isEmpty()) { fillCloudList();  }
 	}
 }

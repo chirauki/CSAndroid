@@ -32,7 +32,7 @@ public class AddInstance extends Activity {
 		clUrl = extras.getString("clurl");
 		clApik = extras.getString("clapik");
 		clSeck = extras.getString("clseck");
-		client = new CSAPIexecutor(clUrl, clApik, clSeck);
+		client = new CSAPIexecutor(clUrl, clApik, clSeck, getApplicationContext());
 		
 		super.onCreate(savedInstanceState);
 		

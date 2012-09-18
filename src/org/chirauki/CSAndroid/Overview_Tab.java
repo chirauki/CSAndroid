@@ -74,7 +74,7 @@ public class Overview_Tab extends Activity {
     
     	setContentView(R.layout.cloud_overview);
     	
-    	CSAPIexecutor client = new CSAPIexecutor(clUrl, clApik, clSeck);
+    	CSAPIexecutor client = new CSAPIexecutor(clUrl, clApik, clSeck, getApplicationContext());
         
     	JSONObject account;
     	try {

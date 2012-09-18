@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.math.BigInteger;
 import java.net.CookieHandler;
 import java.net.CookieManager;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.security.MessageDigest;
@@ -24,7 +25,6 @@ import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509TrustManager;
 
 import org.apache.http.HttpEntity;
@@ -36,23 +36,38 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Log;
 
 public class CSAPIexecutor {
 	private DefaultHttpClient client = new DefaultHttpClient();
 	
-	private String host; //en la forma http://host/api
-	private String apiKey; // api key del cloud.com
-	private String apiSKey; // secret key
-	private int ACC_TYPE = 0;
-	private String ACC_NAME = "";
-	private int ACC_ID;
-	private String DOM_NAME = "";
-	private int DOM_ID;
-	private String jSessionId;
 	CookieManager cookieManager = new CookieManager();
-		
+
+	private String csApiUrl;
+	private String csUserPassword;
+	private String csUserId;
+	private String csUserName;
+	private String csFirstName;
+	private String csLastName;
+	private String csEmail;
+	private String csCreated;
+	private String csState;
+	private String csAccount;
+	private int csAccountType;
+	private String csDomainId;
+	private String csDomain;
+	private String csTimeZone;
+	private String csApiKey;
+	private String csSecretKey; // secret key
+	private String csAccountId;
+	
+	private String jSessionId;
+	private String sessionKey;
+	
+	private Context context; 
+	
 	private static final String JSON = "&response=json";
 	private static final String ASYNC_QUERY = "command=queryAsyncJobResult&jobid=";
 	private static final String LIST_VM = "command=listVirtualMachines";
@@ -72,17 +87,17 @@ public class CSAPIexecutor {
 	private static final String LIST_DISC_OFFERING = "command=listDiskOfferings";
 	
 	/**
-	 * Initializes new API Executor.
+	 * Initializes new API Executor with api key and secret key.
 	 * 
-	 * @param h
-	 * @param ak
-	 * @param ask
+	 * @param h API endpoint url
+	 * @param ak API key
+	 * @param ask Secret key
 	 */
-	public CSAPIexecutor(String h, String ak, String ask) {
+	public CSAPIexecutor(String h, String ak, String ask, Context ctx) {
 		super();
-		host = h;
-		apiKey = ak;
-		apiSKey = ask;
+		csApiUrl = h;
+		csApiKey = ak;
+		csSecretKey = ask;
 		try {
 			whoAmI();
 		} catch (InterruptedException e) {
@@ -90,26 +105,70 @@ public class CSAPIexecutor {
 		} catch (ExecutionException e) {
 			e.printStackTrace();
 		}
+		context = ctx;
+		URL url;
+		try {
+			url = new URL(h);
+			if(url.getHost().equals("plecs.upc.edu")) {
+				client = new plecsHttpClient(ctx);
+			}
+		} catch (MalformedURLException e) {
+			Log.e("Creating CSAPIexecutor", "Error: Malformed url.");
+			e.printStackTrace();
+		}
 		CookieHandler.setDefault(cookieManager);
 	}
 	
-	public CSAPIexecutor(String h) {
+	/**
+	 * Initializes new API Executor with username and password.
+	 * 
+	 * @param h API endpoint url
+	 * @param user User name
+	 * @param pass User password
+	 * @param dom User domain
+	 */
+	public CSAPIexecutor(String h, String user, String password, String domain, Context ctx) {
 		super();
-		host = h;
+		csApiUrl = h;
+		csUserName = user;
+		csUserPassword = password;
+		if (domain == null || domain == "") {
+			//Assume domain ROOT
+			csDomain = "ROOT";
+		} else {
+			csDomain = domain;
+		}
+		context = ctx;
+		URL url;
+		try {
+			url = new URL(h);
+			if(url.getHost().equals("plecs.upc.edu")) {
+				client = new plecsHttpClient(ctx);
+			}
+		} catch (MalformedURLException e) {
+			Log.e("Creating CSAPIexecutor", "Error: Malformed url.");
+			e.printStackTrace();
+		}
 		CookieHandler.setDefault(cookieManager);
 	}
 	
-	public String getApiKey() {
-		return apiKey;
-	}
-
-	public String getApiSKey() {
-		return apiSKey;
-	}
-
-	public int getACC_TYPE() {
-		return ACC_TYPE;
-	}
+//	public CSAPIexecutor(String h) {
+//		super();
+//		csApiUrl = h;
+//		CookieHandler.setDefault(cookieManager);
+//	}
+	
+//	public String getApiKey() {
+//		return csApiKey;
+//	}
+//
+//	public String getApiSKey() {
+//		return csSecretKey;
+//	}
+//
+//	public int getACC_TYPE() {
+//		return csAccountType;
+//	}
 	
 	public String listCapacity() {
 		String ret = "";
@@ -327,7 +386,8 @@ public class CSAPIexecutor {
 	}
 	
 	public JSONArray listNetworks() {
-		String response = executeRequest(LIST_NETWORKS + "&account=" + ACC_ID + "&domainid=" + DOM_ID + JSON);
+		String response = executeRequest(LIST_NETWORKS + "&account=" + csAccountId + 
+				"&domainid=" + csDomainId + JSON);
 		JSONArray nets = null;
 		JSONObject jObject = null;
 		try {
@@ -404,14 +464,14 @@ public class CSAPIexecutor {
 				String user_apik = jObject.getString("apikey");
 				String user_seck = jObject.getString("secretkey");
 				
-				if (user_apik.equals(apiKey) && user_seck.equals(apiSKey)) {
+				/*if (user_apik.equals(apiKey) && user_seck.equals(apiSKey)) {
 					ACC_TYPE = jObject.getInt("accounttype");
 					ACC_NAME = jObject.getString("account");
 					ACC_ID = userObj.getInt("id");
 					DOM_ID = jObject.getInt("domainid");
 					DOM_NAME = jObject.getString("domain");
 					return jObject;
-				}
+				}*/
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -436,65 +496,132 @@ public class CSAPIexecutor {
 		return -1;
 	}
 	
-	public String executeLogin(String username, String password, String domain)
-	{
-		StringBuilder builder = null;
-		String apiUrl = "command=login&username=" + username + "&password=" + hashPassword(password);
-		if (domain != null) {
-			apiUrl = apiUrl + "&domain=" + domain;
-		}
-		apiUrl = apiUrl + "&response=json";
-		
+	public boolean loginUser() {
 		try {
-			List sortedParams = new ArrayList();
-			StringTokenizer st = new StringTokenizer(apiUrl, "&");
-			while (st.hasMoreTokens()) {
-				String paramValue = st.nextToken().toLowerCase();
-				String param = paramValue.substring(0, paramValue.indexOf("="));
-				String value = URLEncoder.encode(paramValue.substring(paramValue.indexOf("=")+1, paramValue.length()), "UTF-8");
-				sortedParams.add(param + "=" + value);
-			}
-			Collections.sort(sortedParams);
-			
-			builder = new StringBuilder();
-			String finalUrl = host + "?" + apiUrl;
-			HttpGet httpGet = new HttpGet(finalUrl);
-			try {
-				
-				String responseLogin = executeHttpRequest(host + "?" + apiUrl);
-				JSONArray tmp1 = null;
-				JSONObject jObject = null;
-				String sesKey = null;
-				jObject = new JSONObject(responseLogin);
-				JSONObject tmp = (JSONObject) jObject.get("loginresponse");
-				sesKey = tmp.getString("sessionkey");
-			
-				apiUrl = "response=json&command=listAccounts&sessionkey=" + URLEncoder.encode(sesKey, "UTF-8");
-				
-				finalUrl = host + "?" + apiUrl;
-				
-				responseLogin = executeHttpRequest(finalUrl);
-				jObject = new JSONObject(responseLogin);
-				JSONObject tmp2 = (JSONObject) jObject.get("listaccountsresponse");
-				JSONArray acc = tmp2.getJSONArray("account");
-				for(int i = 0; i < acc.length(); i++) {
-					JSONObject account = acc.getJSONObject(i);
-					JSONArray users = account.getJSONArray("user");
-					for(int j = 0; j < users.length(); j++) {
-						JSONObject user = users.getJSONObject(j);
-						if (user.getString("username").equals(username)) {
-							apiKey = user.getString("apikey");
-							apiSKey = user.getString("secretkey");
-						}
-					}
+			String loginResponse = new login().execute().get();
+			if(!loginResponse.equals("")) {
+				JSONObject result = new JSONObject(loginResponse);;
+
+				this.csAccount = result.getString("account");
+				this.csAccountId = result.getString("accountid");
+				this.csAccountType = result.getInt("accounttype");
+				this.csCreated = result.getString("created");
+				this.csDomain = result.getString("domain");
+				this.csDomainId = result.getString("domainid");
+				this.csEmail = result.getString("email");
+				this.csFirstName = result.getString("firstname");
+				this.csLastName = result.getString("lastname");
+				this.csState = result.getString("state");
+				this.csTimeZone = result.getString("timezone");
+				this.csUserId = result.getString("id");
+
+				if(result.has("apikey")) {
+					this.csApiKey = result.getString("apikey");
+					this.csSecretKey = result.getString("secretkey");
 				}
-			} catch (IOException e) {
-				e.printStackTrace();
+				
+				return true;
 			}
-		} catch (Exception e) {
+		} catch (InterruptedException e) {
+			Log.e("LOGIN PROCESS", "Something went wron at login.");
+			e.printStackTrace();
+		} catch (ExecutionException e) {
+			Log.e("LOGIN PROCESS", "Something went wron at login.");
+			e.printStackTrace();
+		} catch (JSONException e) {
+			Log.e("LOGIN PROCESS", "Something went wron at login.");
 			e.printStackTrace();
 		}
-		return builder.toString();	
+		return false;
+	}
+	
+	private class login extends AsyncTask<Void, Void, String> {
+
+		@Override
+		protected String doInBackground(Void... params) {
+			
+			String username = csUserName;
+			String password = csUserPassword;
+			String domain = csDomain;
+			
+			StringBuilder builder = null;
+			String apiUrl = "command=login&username=" + username + "&password=" + hashPassword(password);
+			if (domain != null && !domain.equals("")) {
+				apiUrl = apiUrl + "&domain=" + domain;
+			}
+			apiUrl = apiUrl + "&response=json";
+			
+			try {
+				List<String> sortedParams = new ArrayList<String>();
+				StringTokenizer st = new StringTokenizer(apiUrl, "&");
+				while (st.hasMoreTokens()) {
+					String paramValue = st.nextToken().toLowerCase();
+					String param = paramValue.substring(0, paramValue.indexOf("="));
+					String value = URLEncoder.encode(paramValue.substring(paramValue.indexOf("=")+1, paramValue.length()), "UTF-8");
+					sortedParams.add(param + "=" + value);
+				}
+				Collections.sort(sortedParams);
+				
+				builder = new StringBuilder();
+				String finalUrl = csApiUrl + "?" + apiUrl;
+				HttpGet httpGet = new HttpGet(finalUrl);
+				try {
+					String responseLogin = executeHttpRequest(csApiUrl + "?" + apiUrl);
+					// Patch for LDAP auth
+					// response was empty, it may be due to password encoding
+					if (responseLogin.equals("")) {
+						apiUrl = "command=login&username=" + username + "&password=" + password;
+						if (domain != null && !domain.equals("")) {
+							apiUrl = apiUrl + "&domain=" + domain;
+						}
+						apiUrl = apiUrl + "&response=json";
+						
+						sortedParams = new ArrayList<String>();
+						st = new StringTokenizer(apiUrl, "&");
+						while (st.hasMoreTokens()) {
+							String paramValue = st.nextToken().toLowerCase();
+							String param = paramValue.substring(0, paramValue.indexOf("="));
+							String value = URLEncoder.encode(paramValue.substring(paramValue.indexOf("=")+1, paramValue.length()), "UTF-8");
+							sortedParams.add(param + "=" + value);
+						}
+						Collections.sort(sortedParams);
+						
+						builder = new StringBuilder();
+						finalUrl = csApiUrl + "?" + apiUrl;
+						httpGet = new HttpGet(finalUrl);
+						responseLogin = executeHttpRequest(csApiUrl + "?" + apiUrl);
+					}
+					// END patch
+					JSONArray tmp1 = null;
+					JSONObject jObject = null;
+					String sesKey = null;
+					jObject = new JSONObject(responseLogin);
+					JSONObject tmp = (JSONObject) jObject.get("loginresponse");
+					sessionKey = tmp.getString("sessionkey");
+					String csUserId = tmp.getString("userid");
+				
+					apiUrl = "response=json&command=listUsers&id=" + csUserId +
+							"&sessionkey=" + URLEncoder.encode(sesKey, "UTF-8");
+					
+					finalUrl = csApiUrl + "?" + apiUrl;
+					
+					responseLogin = executeHttpRequest(finalUrl);
+					jObject = new JSONObject(responseLogin);
+					JSONObject tmp2 = (JSONObject) jObject.get("listusersresponse");
+					JSONArray acc = tmp2.getJSONArray("user");
+					jObject = acc.getJSONObject(0);
+					return jObject.toString();
+				} catch (IOException e) {
+					Log.e("Login call", "Exception " + e.getMessage());
+					e.printStackTrace();
+					return "";
+				}
+			} catch (Exception e) {
+				Log.e("Login call", "Exception " + e.getMessage());
+				e.printStackTrace();
+				return "";
+			}
+		}
 	}
 	
 	private class executeRequest extends AsyncTask<String, Void, String> {
@@ -504,7 +631,7 @@ public class CSAPIexecutor {
 		protected String doInBackground(String... params) {
 			try {
 				String apiUrl = params[0];
-				String encodedApiKey = URLEncoder.encode(apiKey.toLowerCase(), "UTF-8");
+				String encodedApiKey = URLEncoder.encode(csApiKey.toLowerCase(), "UTF-8");
 				
 				List sortedParams = new ArrayList();
 				sortedParams.add("apikey="+encodedApiKey);
@@ -529,9 +656,9 @@ public class CSAPIexecutor {
 					}
 				}
 				
-				String encodedSignature = signRequest(sortedUrl, apiSKey);
+				String encodedSignature = signRequest(sortedUrl, csSecretKey);
 				
-				String finalUrl = host + "?" + apiUrl + "&apiKey=" + apiKey + "&signature=" + encodedSignature;
+				String finalUrl = csApiUrl + "?" + apiUrl + "&apiKey=" + csApiKey + "&signature=" + encodedSignature;
 				return executeHttpRequest(finalUrl);
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -553,7 +680,7 @@ public class CSAPIexecutor {
 			//System.out.println("Constructing API call to host = '" + host + "' with API command = '" + apiUrl + "' using apiKey = '" + apiKey + "' and secretKey = '" + apiSKey + "'");
 			
 			// Step 1: Make sure your APIKey is toLowerCased and URL encoded
-			String encodedApiKey = URLEncoder.encode(apiKey.toLowerCase(), "UTF-8");
+			String encodedApiKey = URLEncoder.encode(csApiKey.toLowerCase(), "UTF-8");
 			
 			// Step 2: toLowerCase all the parameters, URL encode each parameter value, and the sort the parameters in alphabetical order
 			// Please note that if any parameters with a '&' as a value will cause this test client to fail since we are using '&' to delimit 
@@ -584,12 +711,12 @@ public class CSAPIexecutor {
 				}
 			}
 			
-			String encodedSignature = signRequest(sortedUrl, apiSKey);
+			String encodedSignature = signRequest(sortedUrl, csSecretKey);
 			
 			// Step 4: Construct the final URL we want to send to the CloudStack Management Server
 			// Final result should look like:
 			// http(s)://://client/api?&apiKey=&signature=
-			String finalUrl = host + "?" + apiUrl + "&apiKey=" + apiKey + "&signature=" + encodedSignature;
+			String finalUrl = csApiUrl + "?" + apiUrl + "&apiKey=" + csApiKey + "&signature=" + encodedSignature;
 			return executeHttpRequest(finalUrl);
 			// Step 5: Perform a HTTP GET on this URL to execute the command
 			/*builder = new StringBuilder();
@@ -671,10 +798,12 @@ public class CSAPIexecutor {
 		int statusCode;
 		StringBuilder builder = new StringBuilder();
 		URL url;
+		
 		trustEveryone();
+		
 		try {
 			url = new URL(req);
-			final HttpGet httpGet = new HttpGet(url.toString());
+			HttpGet httpGet = new HttpGet(url.toString());
 			reqResponse =  client.execute(httpGet);
 			statusLine = reqResponse.getStatusLine();
 			statusCode = statusLine.getStatusCode();
@@ -698,23 +827,96 @@ public class CSAPIexecutor {
 	
 	private void trustEveryone() { 
 	    try { 
-	            HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier(){ 
-	                    public boolean verify(String hostname, SSLSession session) { 
-	                            return true; 
-	                    }}); 
-	            SSLContext context = SSLContext.getInstance("TLS"); 
-	            context.init(null, new X509TrustManager[]{new X509TrustManager(){ 
-	                    public void checkClientTrusted(X509Certificate[] chain, 
-	                                    String authType) {} 
-	                    public void checkServerTrusted(X509Certificate[] chain, 
-	                                    String authType) {} 
-	                    public X509Certificate[] getAcceptedIssuers() { 
-	                            return new X509Certificate[0]; 
-	                    }}}, new SecureRandom()); 
-	            HttpsURLConnection.setDefaultSSLSocketFactory( 
-	                            context.getSocketFactory()); 
+	    	HostnameVerifier hostnameVerifier = org.apache.http.conn.ssl.SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER;
+	    	/*HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier(){ 
+	    		public boolean verify(String hostname, SSLSession session) { 
+	    			return true; 
+	    		}});*/
+	    	HttpsURLConnection.setDefaultHostnameVerifier(hostnameVerifier);
+	    	SSLContext context = SSLContext.getInstance("TLS"); 
+	    	context.init(null, new X509TrustManager[]{new X509TrustManager(){ 
+	    		public void checkClientTrusted(X509Certificate[] chain, 
+	    				String authType) {} 
+	    		public void checkServerTrusted(X509Certificate[] chain, 
+	    				String authType) {} 
+	    		public X509Certificate[] getAcceptedIssuers() { 
+	    			return new X509Certificate[0]; 
+	    		}}}, new SecureRandom()); 
+	    	HttpsURLConnection.setDefaultSSLSocketFactory( 
+	    			context.getSocketFactory()); 
 	    } catch (Exception e) { // should never happen 
-	            e.printStackTrace(); 
+	    	e.printStackTrace(); 
 	    } 
-	} 
+	}
+
+	/*
+	 * Getters and setters
+	 */
+	public String getCsApiUrl() {
+		return csApiUrl;
+	}
+
+	public String getCsUserPassword() {
+		return csUserPassword;
+	}
+
+	public String getCsUserId() {
+		return csUserId;
+	}
+
+	public String getCsUserName() {
+		return csUserName;
+	}
+
+	public String getCsFirstName() {
+		return csFirstName;
+	}
+
+	public String getCsLastName() {
+		return csLastName;
+	}
+
+	public String getCsEmail() {
+		return csEmail;
+	}
+
+	public String getCsCreated() {
+		return csCreated;
+	}
+
+	public String getCsState() {
+		return csState;
+	}
+
+	public String getCsAccount() {
+		return csAccount;
+	}
+
+	public int getCsAccountType() {
+		return csAccountType;
+	}
+
+	public String getCsDomainId() {
+		return csDomainId;
+	}
+
+	public String getCsDomain() {
+		return csDomain;
+	}
+
+	public String getCsTimeZone() {
+		return csTimeZone;
+	}
+
+	public String getCsApiKey() {
+		return csApiKey;
+	}
+
+	public String getCsSecretKey() {
+		return csSecretKey;
+	}
+
+	public String getCsAccountId() {
+		return csAccountId;
+	}	
 }

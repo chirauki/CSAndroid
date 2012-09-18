@@ -52,7 +52,7 @@ public class Instances_Tab extends ListActivity {
 		clUrl = extras.getString("clurl");
 		clApik = extras.getString("clapik");
 		clSeck = extras.getString("clseck");
-		client = new CSAPIexecutor(clUrl, clApik, clSeck);
+		client = new CSAPIexecutor(clUrl, clApik, clSeck, getApplicationContext());
 		
 		setContentView(R.layout.instances_list);
 		

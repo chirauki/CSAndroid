@@ -62,5 +62,6 @@
         <string name="next">Next</string>
         <string name="cloud_user">User Name</string>
         <string name="cloud_pass">Password</string>
+        <string name="domain">Domain</string>
     
 </resources>
