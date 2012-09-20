@@ -27,6 +27,7 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
 
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
@@ -40,35 +41,57 @@ import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Log;
 
-public class CSAPIexecutor {
-	private DefaultHttpClient client = new DefaultHttpClient();
-	
-	CookieManager cookieManager = new CookieManager();
+import com.google.gson.annotations.SerializedName;
 
+public class CSAPIexecutor {
+private transient DefaultHttpClient client = new DefaultHttpClient();
+	
+	private transient CookieManager cookieManager = new CookieManager();
+
+	@SerializedName("csapiurl") 
 	private String csApiUrl;
+	@SerializedName("csuserpassword") 
 	private String csUserPassword;
+	@SerializedName("csuserid") 
 	private String csUserId;
+	@SerializedName("csusername") 
 	private String csUserName;
+	@SerializedName("csfirstname") 
 	private String csFirstName;
+	@SerializedName("cslastname") 
 	private String csLastName;
+	@SerializedName("csemail") 
 	private String csEmail;
+	@SerializedName("cscreated") 
 	private String csCreated;
+	@SerializedName("csstate") 
 	private String csState;
+	@SerializedName("csaccount") 
 	private String csAccount;
+	@SerializedName("csaccounttype") 
 	private int csAccountType;
+	@SerializedName("csdomainid") 
 	private String csDomainId;
+	@SerializedName("csdomain") 
 	private String csDomain;
+	@SerializedName("cstimezone") 
 	private String csTimeZone;
+	@SerializedName("csapikey") 
 	private String csApiKey;
-	private String csSecretKey; // secret key
+	@SerializedName("cssecretkey") 
+	private String csSecretKey;
+	@SerializedName("csaccountid") 
 	private String csAccountId;
 	
+	@SerializedName("csjsessionid") 
 	private String jSessionId;
+	@SerializedName("cssessionkey") 
 	private String sessionKey;
 	
-	private Context context; 
+	private transient Context context; 
 	
 	private static final String JSON = "&response=json";
+	private static final String LIST_USERS = "command=ListUsers";
 	private static final String ASYNC_QUERY = "command=queryAsyncJobResult&jobid=";
 	private static final String LIST_VM = "command=listVirtualMachines";
 	private static final String LIST_VOLS = "command=listVolumes";
@@ -117,6 +140,8 @@ public class CSAPIexecutor {
 			e.printStackTrace();
 		}
 		CookieHandler.setDefault(cookieManager);
+		
+		loginUser();
 	}
 	
 	/**
@@ -126,6 +151,7 @@ public class CSAPIexecutor {
 	 * @param user User name
 	 * @param pass User password
 	 * @param dom User domain
+	 * @param ctx Application context
 	 */
 	public CSAPIexecutor(String h, String user, String password, String domain, Context ctx) {
 		super();
@@ -150,32 +176,26 @@ public class CSAPIexecutor {
 			e.printStackTrace();
 		}
 		CookieHandler.setDefault(cookieManager);
+		
+		//loginUser();
 	}
 	
-//	public CSAPIexecutor(String h) {
-//		super();
-//		csApiUrl = h;
-//		CookieHandler.setDefault(cookieManager);
-//	}
-	
-//	public String getApiKey() {
-//		return csApiKey;
-//	}
-//
-//	public String getApiSKey() {
-//		return csSecretKey;
-//	}
-//
-//	public int getACC_TYPE() {
-//		return csAccountType;
-//	}
+	/**
+	 * Initializes new empty API Executor.
+	 */
+	public CSAPIexecutor() {
+		super();
+
+		client = new DefaultHttpClient();
+		cookieManager = new CookieManager();
+	}
 	
 	public String listCapacity() {
 		String ret = "";
 		String req = "command=listCapacity";
 		
 		try {
-			JSONArray jsonArray = new JSONArray(executeRequest(req));
+			JSONArray jsonArray = new JSONArray(new executeRequest().execute(req).get());
 			Log.i(CSAPIexecutor.class.getName(),
 					"Number of entries " + jsonArray.length());
 			for (int i = 0; i < jsonArray.length(); i++) {
@@ -189,10 +209,11 @@ public class CSAPIexecutor {
 	}
 	
 	public JSONArray listVirtualMachines() {
-		String response = executeRequest(LIST_VM + JSON);
-		JSONArray vms = null;
-		JSONObject jObject = null;
 		try {
+			String response = new executeRequest().execute(LIST_VM + JSON).get();
+			JSONArray vms = null;
+			JSONObject jObject = null;
+		
 			jObject = new JSONObject(response);
 			JSONObject tmp = (JSONObject) jObject.get("listvirtualmachinesresponse");
     		vms = tmp.getJSONArray("virtualmachine");
@@ -204,9 +225,10 @@ public class CSAPIexecutor {
 	}
 	
 	public JSONObject listVirtualMachines(int id) {
-		String response = executeRequest(LIST_VM + "&id=" + id + JSON);
-		JSONObject jObject = null;
 		try {
+			String response = new executeRequest().execute(LIST_VM + "&id=" + id + JSON).get();
+			JSONObject jObject = null;
+		
 			jObject = new JSONObject(response);
 			JSONObject tmp = (JSONObject) jObject.get("listvirtualmachinesresponse");
     		JSONArray vm = tmp.getJSONArray("virtualmachine");
@@ -218,9 +240,10 @@ public class CSAPIexecutor {
 	}
 	
 	public JSONArray stopVirtualMachine(int id) {
-		String response = executeRequest(VM_STOP + id + JSON);
-		JSONObject jObject = null;
 		try {
+			String response = new executeRequest().execute(VM_STOP + id + JSON).get();
+
+			JSONObject jObject = null;
 			jObject = new JSONObject(response);
 			JSONObject tmp = (JSONObject) jObject.get("stopvirtualmachineresponse");
     		int jobid = tmp.getInt("jobid");
@@ -237,9 +260,10 @@ public class CSAPIexecutor {
 	}
 	
 	public JSONArray startVirtualMachine(int id) {
-		String response = executeRequest(VM_START + id + JSON);
-		JSONObject jObject = null;
 		try {
+			String response = new executeRequest().execute(VM_START + id + JSON).get();
+			JSONObject jObject = null;
+
 			jObject = new JSONObject(response);
 			JSONObject tmp = (JSONObject) jObject.get("startvirtualmachineresponse");
     		int jobid = tmp.getInt("jobid");
@@ -256,10 +280,11 @@ public class CSAPIexecutor {
 	}
 	
 	public JSONArray listVolumes() {
-		String response = executeRequest(LIST_VOLS + JSON);
-		JSONArray vols = null;
-		JSONObject jObject = null;
 		try {
+			String response = new executeRequest().execute(LIST_VOLS + JSON).get();
+		
+			JSONArray vols = null;
+			JSONObject jObject = null;
 			jObject = new JSONObject(response);
 			JSONObject tmp = (JSONObject) jObject.get("listvolumesresponse");
     		vols = tmp.getJSONArray("volume");
@@ -272,10 +297,12 @@ public class CSAPIexecutor {
 	}
 
 	public JSONObject listVolumes(Integer volId) {
-		String response = executeRequest(LIST_VOLS + "&id=" + volId + JSON);
-		JSONArray vols = null;
-		JSONObject jObject = null;
 		try {
+			String response = new executeRequest().execute(LIST_VOLS + "&id=" + volId + JSON).get();
+
+			JSONArray vols = null;
+			JSONObject jObject = null;
+
 			jObject = new JSONObject(response);
 			JSONObject tmp = (JSONObject) jObject.get("listvolumesresponse");
 			vols = tmp.getJSONArray("volume");
@@ -289,10 +316,11 @@ public class CSAPIexecutor {
 	}
 
 	public JSONArray listSnapshots() {
-		String response = executeRequest(LIST_SNAP + JSON);
-		JSONArray snap = null;
-		JSONObject jObject = null;
 		try {
+			String response = new executeRequest().execute(LIST_SNAP + JSON).get();
+
+			JSONArray snap = null;
+			JSONObject jObject = null;
 			jObject = new JSONObject(response);
 			JSONObject tmp = (JSONObject) jObject.get("listsnapshotsresponse");
     		snap = tmp.getJSONArray("snapshot");
@@ -305,10 +333,12 @@ public class CSAPIexecutor {
 	}
 	
 	public JSONArray listOwnTemplates() {
-		String response = executeRequest(LIST_OWNTMPL + JSON);
-		JSONArray tmpl = null;
-		JSONObject jObject = null;
 		try {
+			String response = new executeRequest().execute(LIST_OWNTMPL + JSON).get();
+
+			JSONArray tmpl = null;
+			JSONObject jObject = null;
+
 			jObject = new JSONObject(response);
 			JSONObject tmp = (JSONObject) jObject.get("listtemplatesresponse");
     		tmpl = tmp.getJSONArray("template");
@@ -321,10 +351,12 @@ public class CSAPIexecutor {
 	}
 	
 	public JSONArray listTemplates() {
-		String response = executeRequest(LIST_TMPL + JSON);
-		JSONArray tmpl = null;
-		JSONObject jObject = null;
 		try {
+			String response = new executeRequest().execute(LIST_TMPL + JSON).get();
+
+			JSONArray tmpl = null;
+			JSONObject jObject = null;
+
 			jObject = new JSONObject(response);
 			JSONObject tmp = (JSONObject) jObject.get("listtemplatesresponse");
     		tmpl = tmp.getJSONArray("template");
@@ -337,10 +369,11 @@ public class CSAPIexecutor {
 	}
 	
 	public JSONObject listOsTypes(Integer osId) {
-		String response = executeRequest(LIST_OSTYPES + "&id="+ osId + JSON);
-		JSONArray ostype = null;
-		JSONObject jObject = null;
 		try {
+			String response = new executeRequest().execute(LIST_OSTYPES + "&id="+ osId + JSON).get();
+
+			JSONArray ostype = null;
+			JSONObject jObject = null;
 			jObject = new JSONObject(response);
 			JSONObject tmp = (JSONObject) jObject.get("listostypesresponse");
 			ostype = tmp.getJSONArray("ostype");
@@ -354,10 +387,11 @@ public class CSAPIexecutor {
 	}
 	
 	public JSONArray listServiceOfferings() {
-		String response = executeRequest(LIST_SVC_OFFERING + JSON);
-		JSONArray offers = null;
-		JSONObject jObject = null;
 		try {
+			String response = new executeRequest().execute(LIST_SVC_OFFERING + JSON).get();
+
+			JSONArray offers = null;
+			JSONObject jObject = null;
 			jObject = new JSONObject(response);
 			JSONObject tmp = (JSONObject) jObject.get("listserviceofferingsresponse");
 			offers = tmp.getJSONArray("serviceoffering");
@@ -370,10 +404,11 @@ public class CSAPIexecutor {
 	}
 	
 	public JSONArray listDiskOfferings() {
-		String response = executeRequest(LIST_DISC_OFFERING + JSON);
-		JSONArray offers = null;
-		JSONObject jObject = null;
 		try {
+			String response = new executeRequest().execute(LIST_DISC_OFFERING + JSON).get();
+
+			JSONArray offers = null;
+			JSONObject jObject = null;
 			jObject = new JSONObject(response);
 			JSONObject tmp = (JSONObject) jObject.get("listdiskofferingsresponse");
 			offers = tmp.getJSONArray("diskoffering");
@@ -386,11 +421,12 @@ public class CSAPIexecutor {
 	}
 	
 	public JSONArray listNetworks() {
-		String response = executeRequest(LIST_NETWORKS + "&account=" + csAccountId + 
-				"&domainid=" + csDomainId + JSON);
-		JSONArray nets = null;
-		JSONObject jObject = null;
 		try {
+			String response = new executeRequest().execute(LIST_NETWORKS + "&account=" + csAccountId + 
+					"&domainid=" + csDomainId + JSON).get();
+
+			JSONArray nets = null;
+			JSONObject jObject = null;
 			jObject = new JSONObject(response);
 			JSONObject tmp = (JSONObject) jObject.get("listnetworksresponse");
 			nets = tmp.getJSONArray("network");
@@ -403,10 +439,12 @@ public class CSAPIexecutor {
 	}
 	
 	public JSONArray listOwnIsos() {
-		String response = executeRequest(LIST_OWNISOS + JSON);
-		JSONArray isos = null;
-		JSONObject jObject = null;
 		try {
+			String response = new executeRequest().execute(LIST_OWNISOS + JSON).get();
+
+			JSONArray isos = null;
+			JSONObject jObject = null;
+
 			jObject = new JSONObject(response);
 			JSONObject tmp = (JSONObject) jObject.get("listisosresponse");
 			isos = tmp.getJSONArray("iso");
@@ -419,10 +457,11 @@ public class CSAPIexecutor {
 	}
 	
 	public JSONArray listIsos() {
-		String response = executeRequest(LIST_ISOS + JSON);
-		JSONArray isos = null;
-		JSONObject jObject = null;
 		try {
+			String response = new executeRequest().execute(LIST_ISOS + JSON).get();
+			
+			JSONArray isos = null;
+			JSONObject jObject = null;
 			jObject = new JSONObject(response);
 			JSONObject tmp = (JSONObject) jObject.get("listisosresponse");
 			isos = tmp.getJSONArray("iso");
@@ -435,10 +474,11 @@ public class CSAPIexecutor {
 	}
 	
 	public JSONArray listResourceLimits() {
-		String response = executeRequest(LIST_RESOURCE_LIMITS + JSON);
-		JSONArray rlimits = null;
-		JSONObject jObject = null;
 		try {
+			String response = new executeRequest().execute(LIST_RESOURCE_LIMITS + JSON).get();
+			
+			JSONArray rlimits = null;
+			JSONObject jObject = null;
 			jObject = new JSONObject(response);
 			JSONObject tmp = (JSONObject) jObject.get("listresourcelimitsresponse");
 			rlimits = tmp.getJSONArray("resourcelimit");
@@ -448,6 +488,22 @@ public class CSAPIexecutor {
 		}
 		//return jArray;
 		return new JSONArray();
+	}
+	
+	public JSONObject listAccounts() {
+		try {
+			String response = new executeRequest().execute(LIST_ACCOUNTS + JSON).get();
+			JSONArray accounts = null;
+			JSONObject jObject = null;
+			
+			jObject = new JSONObject(response);
+			JSONObject tmp = (JSONObject) jObject.get("listaccountsresponse");
+			accounts = tmp.getJSONArray("account");
+			return accounts.getJSONObject(0);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
 	}
 		
 	public JSONObject whoAmI() throws InterruptedException, ExecutionException {
@@ -481,8 +537,9 @@ public class CSAPIexecutor {
 	}
 	
 	public int queryAsyncJobResult(int jobId) {
-		String response = executeRequest(ASYNC_QUERY + jobId + JSON);
 		try {
+			String response = new executeRequest().execute(ASYNC_QUERY + jobId + JSON).get();
+
 			JSONObject jObject = new JSONObject(response);
 			JSONObject tmp = (JSONObject) jObject.get("queryasyncjobresultresponse");
 			return tmp.getInt("jobstatus");
@@ -535,6 +592,45 @@ public class CSAPIexecutor {
 		return false;
 	}
 	
+	public boolean getUserData() {
+		try {
+			String loginResponse = new executeRequest().execute("listUsers").get();
+			if(!loginResponse.equals("")) {
+				JSONObject result = new JSONObject(loginResponse);;
+
+				this.csAccount = result.getString("account");
+				this.csAccountId = result.getString("accountid");
+				this.csAccountType = result.getInt("accounttype");
+				this.csCreated = result.getString("created");
+				this.csDomain = result.getString("domain");
+				this.csDomainId = result.getString("domainid");
+				this.csEmail = result.getString("email");
+				this.csFirstName = result.getString("firstname");
+				this.csLastName = result.getString("lastname");
+				this.csState = result.getString("state");
+				this.csTimeZone = result.getString("timezone");
+				this.csUserId = result.getString("id");
+
+				if(result.has("apikey")) {
+					this.csApiKey = result.getString("apikey");
+					this.csSecretKey = result.getString("secretkey");
+				}
+				
+				return true;
+			}
+		} catch (InterruptedException e) {
+			Log.e("LOGIN PROCESS", "Something went wron at login.");
+			e.printStackTrace();
+		} catch (ExecutionException e) {
+			Log.e("LOGIN PROCESS", "Something went wron at login.");
+			e.printStackTrace();
+		} catch (JSONException e) {
+			Log.e("LOGIN PROCESS", "Something went wron at login.");
+			e.printStackTrace();
+		}
+		return false;
+	}
+	
 	private class login extends AsyncTask<Void, Void, String> {
 
 		@Override
@@ -547,8 +643,13 @@ public class CSAPIexecutor {
 			StringBuilder builder = null;
 			String apiUrl = "command=login&username=" + username + "&password=" + hashPassword(password);
 			if (domain != null && !domain.equals("")) {
-				apiUrl = apiUrl + "&domain=" + domain;
-			}
+				if(domain.equals("ROOT")) {
+					apiUrl = apiUrl + "&domain=/";
+				} else {
+					apiUrl = apiUrl + "&domain=" + domain;
+				}
+			} 
+			
 			apiUrl = apiUrl + "&response=json";
 			
 			try {
@@ -572,8 +673,13 @@ public class CSAPIexecutor {
 					if (responseLogin.equals("")) {
 						apiUrl = "command=login&username=" + username + "&password=" + password;
 						if (domain != null && !domain.equals("")) {
-							apiUrl = apiUrl + "&domain=" + domain;
-						}
+							if(domain.equals("ROOT")) {
+								apiUrl = apiUrl + "&domain=/";
+							} else {
+								apiUrl = apiUrl + "&domain=" + domain;
+							}
+						} 
+						
 						apiUrl = apiUrl + "&response=json";
 						
 						sortedParams = new ArrayList<String>();
@@ -592,16 +698,16 @@ public class CSAPIexecutor {
 						responseLogin = executeHttpRequest(csApiUrl + "?" + apiUrl);
 					}
 					// END patch
+					
 					JSONArray tmp1 = null;
 					JSONObject jObject = null;
-					String sesKey = null;
 					jObject = new JSONObject(responseLogin);
 					JSONObject tmp = (JSONObject) jObject.get("loginresponse");
 					sessionKey = tmp.getString("sessionkey");
 					String csUserId = tmp.getString("userid");
 				
 					apiUrl = "response=json&command=listUsers&id=" + csUserId +
-							"&sessionkey=" + URLEncoder.encode(sesKey, "UTF-8");
+							"&sessionkey=" + URLEncoder.encode(sessionKey, "UTF-8");
 					
 					finalUrl = csApiUrl + "?" + apiUrl;
 					
@@ -808,6 +914,20 @@ public class CSAPIexecutor {
 			statusLine = reqResponse.getStatusLine();
 			statusCode = statusLine.getStatusCode();
 			if (statusCode == 200) {
+				// IF JSESSIONID is not set, save it
+				if(jSessionId == null) {
+					Header[] headers = reqResponse.getHeaders("Set-Cookie");
+					for(Header header : headers) {
+						String cookie = header.getValue();
+						String[] garbage = cookie.split(";");
+						for(String piece : garbage) {
+							if(piece.startsWith("JSESSIONID")) {
+								String[] value = piece.split("=");
+								jSessionId = value[1];
+							}
+						}
+					}
+				}
 				HttpEntity entity = reqResponse.getEntity();
 				InputStream content = entity.getContent();
 				BufferedReader reader = new BufferedReader(
@@ -918,5 +1038,26 @@ public class CSAPIexecutor {
 
 	public String getCsAccountId() {
 		return csAccountId;
-	}	
+	}
+
+	public void setContext(Context context) {
+		this.context = context;
+		refreshClient();
+	}
+	
+	private void refreshClient() {
+		URL url;
+		try {
+			if (csApiUrl != null && context != null) {
+				url = new URL(csApiUrl);
+				if(url.getHost().equals("plecs.upc.edu")) {
+					client = new plecsHttpClient(context);
+				}	
+			}
+		} catch (MalformedURLException e) {
+			Log.e("Creating CSAPIexecutor", "Error: Malformed url.");
+			e.printStackTrace();
+		}
+		CookieHandler.setDefault(cookieManager);
+	}
 }

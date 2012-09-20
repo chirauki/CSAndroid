@@ -1,11 +1,5 @@
 package org.chirauki.CSAndroid;
 
-import java.util.concurrent.ExecutionException;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -194,7 +188,7 @@ public class CSAndroidDbAdapter {
 
         Cursor mCursor =
 
-            mDb.query(true, DATABASE_TABLE, new String[] {KEY_ROWID, KEY_NAME,
+            mDb.query(true, DATABASE_TABLE, new String[] {KEY_ROWID, KEY_NAME, KEY_DOMAIN,
                     KEY_URL, KEY_APIK, KEY_SECK, KEY_USERNAME, KEY_PASS, KEY_FIRSTNAME, KEY_LASTNAME, KEY_USRTYPE}, KEY_ROWID + "=" + rowId, null,
                     null, null, null, null);
         if (mCursor != null) {

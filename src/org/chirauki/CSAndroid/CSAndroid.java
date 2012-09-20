@@ -1,6 +1,5 @@
 package org.chirauki.CSAndroid;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.app.ListActivity;
@@ -15,6 +14,10 @@ import android.view.View;
 import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
+import android.widget.Toast;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 public class CSAndroid extends ListActivity {
 	private static final int MENUCLOUD_ID = Menu.FIRST;
@@ -44,20 +47,33 @@ public class CSAndroid extends ListActivity {
     @Override
 	protected void onListItemClick(ListView l, View v, int position, long id) {
     	super.onListItemClick(l, v, position, id);
-    	// TODO Auto-generated method stub
+
     	mDbHelper.open();
     	Cursor c = mDbHelper.fetchCloud(id);
     	startManagingCursor(c);
 		
 		Intent in = new Intent(this, Cloud.class);
+		
+		CSAPIexecutor cs = new CSAPIexecutor(c.getString(c.getColumnIndexOrThrow(CSAndroidDbAdapter.KEY_URL)).trim(), 
+				c.getString(c.getColumnIndexOrThrow(CSAndroidDbAdapter.KEY_USERNAME)).trim(),
+				c.getString(c.getColumnIndexOrThrow(CSAndroidDbAdapter.KEY_PASS)).trim(),
+				c.getString(c.getColumnIndexOrThrow(CSAndroidDbAdapter.KEY_DOMAIN)).trim(),
+				getApplicationContext());
+		
+		if (cs.loginUser()) {
+			Gson gson = new Gson();
+			
+			String p = gson.toJson(cs);
 
-		in.putExtra("clurl", c.getString(c.getColumnIndexOrThrow(CSAndroidDbAdapter.KEY_URL)).trim());
-		in.putExtra("clapik", c.getString(c.getColumnIndexOrThrow(CSAndroidDbAdapter.KEY_APIK)).trim());
-		in.putExtra("clseck", c.getString(c.getColumnIndexOrThrow(CSAndroidDbAdapter.KEY_SECK)).trim());
-		
-		mDbHelper.close();
-		
-		startActivity(in);
+			in.putExtra("csclient", p);
+			
+			mDbHelper.close();
+			
+			startActivity(in);
+		} else {
+			Toast.makeText(getApplicationContext(), "Could not login", Toast.LENGTH_SHORT).show();
+			mDbHelper.close();
+		}
 	}
 
 	@Override
