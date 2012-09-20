@@ -220,8 +220,8 @@ private transient DefaultHttpClient client = new DefaultHttpClient();
 			return vms;
 		} catch (Exception e) {
 			e.printStackTrace();
+			return new JSONArray();
 		}
-		return new JSONArray();
 	}
 	
 	public JSONObject listVirtualMachines(int id) {

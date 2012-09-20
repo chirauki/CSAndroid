@@ -34,10 +34,10 @@ public class Cloud extends TabActivity {
 	    tabHost.addTab(spec);
 
 	    // Do the same for the other tabs
-//	    intent = new Intent().setClass(this, Instances_Tab.class);
-//	    intent.putExtra("csclient", jsonClient);
-//	    spec = tabHost.newTabSpec("instances").setContent(intent).setIndicator("Instances");
-//	    tabHost.addTab(spec);
+	    intent = new Intent().setClass(this, Instances_Tab.class);
+	    intent.putExtra("csclient", jsonClient);
+	    spec = tabHost.newTabSpec("instances").setContent(intent).setIndicator("Instances");
+	    tabHost.addTab(spec);
 
 	    intent = new Intent().setClass(this, Volumes_Tab.class);
 	    spec = tabHost.newTabSpec("volumes").setContent(intent).setIndicator("Volumes");
@@ -47,6 +47,6 @@ public class Cloud extends TabActivity {
 	    spec = tabHost.newTabSpec("network").setContent(intent).setIndicator("Network");
 	    tabHost.addTab(spec);
 
-	    tabHost.setCurrentTab(0);
+	    tabHost.setCurrentTab(1);
 	}
 }

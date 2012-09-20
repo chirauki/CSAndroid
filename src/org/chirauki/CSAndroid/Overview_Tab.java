@@ -66,7 +66,7 @@ public class Overview_Tab extends Activity {
 
         
         Bundle extras = getIntent().getExtras();
-    	String jsonClient = extras.getString("csclient");
+        String jsonClient = extras.getString("csclient");
     	
     	Gson gson = new Gson();
     	
@@ -220,118 +220,10 @@ public class Overview_Tab extends Activity {
     	    	storage = storage >> 30;
     	    	t = (TextView) findViewById(R.id.txt_storage);
     	    	t.setText("" + storage.toString());
-    	    	
-    		
     		}
-    			
-/* {"templatelimit":"Unlimited",
- * "vmtotal":13,
- * "networktotal":2,
- * "snapshotavailable":"Unlimited",
- * "volumetotal":15,
- * "state":"enabled",
- * "volumelimit":"Unlimited",
- * "domainid":"2ea1a647-9429-42e7-a33f-94996e96761d",
- * "id":"2a1701a8-c23e-4c83-9c87-26e7060bc460",
- * "volumeavailable":"Unlimited",
- * "sentbytes":318206836701,
- * "vmrunning":4,
- * "name":"admin",
- * "vmstopped":9,
- * "vmavailable":"Unlimited",
- * "domain":"ROOT",
- * "vmlimit":"Unlimited",
- * "accounttype":1,
- * "networkavailable":"Unlimited",
- * "projecttotal":2,
- * "receivedbytes":153363212620,
- * "templateavailable":"Unlimited",
- * "networklimit":"Unlimited",
- * "snapshottotal":7,
- * "ipavailable":"Unlimited",
- * "iplimit":"Unlimited",
- * "templatetotal":33,
- * "iptotal":6,
- * "projectlimit":"Unlimited",
- * "projectavailable":"Unlimited", */
- 
-//    	ram = ram / 1024;
-//    	//Resource limits
-//    	JSONArray rlimits = client.listResourceLimits();
-//    	try {
-//    		for (int i = 0; i < rlimits.length(); i++) {
-//    			JSONObject tmplim = (JSONObject) rlimits.getJSONObject(i);
-//    			/*
-//    			 * Type of resource to update. Values are 0, 1, 2, 3, and 4. 
-//    			 * 0 - Instance. Number of instances a user can create. 
-//    			 * 1 - IP. Number of public IP addresses a user can own. 
-//    			 * 2 - Volume. Number of disk volumes a user can create.
-//    			 * 3 - Snapshot. Number of snapshots a user can create.
-//    			 * 4 - Template. Number of templates that a user can register/create.
-//    			 */
-//    			switch (tmplim.getInt("resourcetype")) {
-//    			case 0:
-//    				maximumInstances = tmplim.getInt("max");
-//    				break;
-//    			case 2:
-//    				maxVolumes = tmplim.getInt("max");
-//    				break;
-//    			case 3:
-//    				maxSnap = tmplim.getInt("max");
-//    				break;
-//    			case 4:
-//    				maxTmpl = tmplim.getInt("max");
-//    				break;
-//    			}
-//    		}
     	} catch (Exception e) {
     		e.printStackTrace();
     	}
-//    	
-//    	
-//    	storage = storage >> 30;
-//    	
-//    	// Update textviews
-//    	tv = (TextView) findViewById(R.id.txt_running_instances);
-//    	tv.setText("" + runningInstances.toString());
-//    	tv = (TextView) findViewById(R.id.txt_stopped_instances);
-//    	tv.setText("" + stoppedInstances.toString());
-//    	tv = (TextView) findViewById(R.id.txt_used_vols);
-//    	tv.setText("" + usedVolumes.toString());
-//    	tv = (TextView) findViewById(R.id.txt_used_snap);
-//    	tv.setText("" + usedSnap.toString());
-//    	tv = (TextView) findViewById(R.id.txt_storage);
-//    	tv.setText("" + storage.toString());
-//    	tv = (TextView) findViewById(R.id.txt_used_templates);
-//    	tv.setText("" + usedTmpl.toString());
-//    	tv = (TextView) findViewById(R.id.txt_used_isos);
-//    	tv.setText("" + usedIsos.toString());
-//    	//TODO Arreglar para que ponga los maximos de aplicacion.
-//    	tv = (TextView) findViewById(R.id.txt_max_instances);
-//    	if (maximumInstances < 0 ) {
-//    		tv.setText("Unlimited");
-//    	} else {
-//    		tv.setText(maximumInstances.toString());
-//    	}
-//    	tv = (TextView) findViewById(R.id.txt_max_vols);
-//    	if (maxVolumes < 0 ) {
-//    		tv.setText("Unlimited");
-//    	} else {
-//    		tv.setText(maxVolumes.toString());
-//    	}
-//    	tv = (TextView) findViewById(R.id.txt_max_snap);
-//    	if (maxSnap < 0 ) {
-//    		tv.setText("Unlimited");
-//    	} else {
-//    		tv.setText(maxSnap.toString());
-//    	}
-//    	tv = (TextView) findViewById(R.id.txt_max_templates);
-//    	if (maxTmpl < 0 ) {
-//    		tv.setText("Unlimited");
-//    	} else {
-//    		tv.setText(maxTmpl.toString());
-//    	}
-//    	
 	}
 }
 

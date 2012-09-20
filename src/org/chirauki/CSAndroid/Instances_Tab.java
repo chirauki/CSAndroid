@@ -9,6 +9,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.google.gson.Gson;
+
 import android.app.ListActivity;
 import android.app.ProgressDialog;
 import android.content.Intent;
@@ -35,11 +37,7 @@ public class Instances_Tab extends ListActivity {
 	private static final int CTXRESETPWD_ID = CTXDETACH_ID + 1;
 	private static final int CTXCHOFFERING_ID = CTXRESETPWD_ID + 1;
 	
-	private String clUrl = "";
-	private String clApik = "";
-	private String clSeck = "";
-	
-	CSAPIexecutor client;
+	CSAPIexecutor cs;
 	ProgressDialog progDialog;
 	
 	public void onCreate(Bundle savedInstanceState) {
@@ -49,10 +47,12 @@ public class Instances_Tab extends ListActivity {
 		progDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
 		
 		Bundle extras = getIntent().getExtras();
-		clUrl = extras.getString("clurl");
-		clApik = extras.getString("clapik");
-		clSeck = extras.getString("clseck");
-		client = new CSAPIexecutor(clUrl, clApik, clSeck, getApplicationContext());
+		String jsonClient = extras.getString("csclient");
+    	
+		Gson gson = new Gson();
+    	
+    	CSAPIexecutor cs = gson.fromJson(jsonClient, CSAPIexecutor.class);
+    	cs.setContext(getApplicationContext());
 		
 		setContentView(R.layout.instances_list);
 		
@@ -74,18 +74,15 @@ public class Instances_Tab extends ListActivity {
 	
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
-		// TODO Auto-generated method stub
 	    switch(item.getItemId()) {
         case MREFRESH_ID:
             fillList();
             return true;
         case MCREATE_ID:
-        	//TODO add code to launch create_instance activity
         	Intent in = new Intent(this, AddInstance.class);
-        	in.putExtra("clurl", clUrl);
-    		in.putExtra("clapik", clApik);
-    		in.putExtra("clseck", clSeck);
-        	startActivity(in);
+        	Gson gson = new Gson();
+        	in.putExtra("csclient", gson.toJson(cs));
+    		startActivity(in);
         	return true;
 	    }
 	    return super.onOptionsItemSelected(item);
@@ -159,7 +156,7 @@ public class Instances_Tab extends ListActivity {
 		/*SimpleAdapter a = (SimpleAdapter) this.getListView().getAdapter();
 		HashMap<String, String> mapa = (HashMap<String, String>) a.getItem(pos);
 		int instanceID = Integer.parseInt(mapa.get("id").toString());*/
-		JSONObject vminstance = client.listVirtualMachines(id);
+		JSONObject vminstance = cs.listVirtualMachines(id);
 		try {
 			String state = vminstance.getString("state");
 			if (state.equals("Running")) {
@@ -179,7 +176,7 @@ public class Instances_Tab extends ListActivity {
 		/*SimpleAdapter a = (SimpleAdapter) this.getListView().getAdapter();
 		HashMap<String, String> mapa = (HashMap<String, String>) a.getItem(pos);
 		int instanceID = Integer.parseInt(mapa.get("id").toString());*/
-		JSONObject vminstance = client.listVirtualMachines(id);
+		JSONObject vminstance = cs.listVirtualMachines(id);
 		
 		if (vminstance.has("isoid")) {
 			return 1;
@@ -208,23 +205,13 @@ public class Instances_Tab extends ListActivity {
 	private List<HashMap<String, String>> getInstancesList() {
     	//List of hashmaps with needed info
     	List<HashMap<String, String>> instances = new ArrayList<HashMap<String, String>>();
-    	
-    	//get instances
-    	JSONArray vms;
-		try {
-			vms = new refresh().execute().get();
-		} catch (InterruptedException e1) {
-			e1.printStackTrace();
-			return null;
-		} catch (ExecutionException e1) {
-			e1.printStackTrace();
-			return null;
-		}
     	try {
+    		//get instances
+    		JSONArray vms = cs.listVirtualMachines();
     		for (int i = 0; i < vms.length(); i++) {
     			JSONObject tmpvm = (JSONObject) vms.getJSONObject(i);
-    			JSONObject ostype = (JSONObject) client.listOsTypes(tmpvm.getInt("guestosid"));
-    			
+    			JSONObject ostype = (JSONObject) cs.listOsTypes(tmpvm.getInt("guestosid"));
+
     			HashMap<String, String> map = new HashMap<String, String>();
     			map.put("instance_name", tmpvm.getString("name"));
     			map.put("instance_disp_name", tmpvm.getString("displayname"));
@@ -232,14 +219,13 @@ public class Instances_Tab extends ListActivity {
     			map.put("offering_name", tmpvm.getString("serviceofferingname"));
     			map.put("state", tmpvm.getString("state"));
     			map.put("id", tmpvm.getString("id"));
-	                			
-	            instances.add(map);
 
+    			instances.add(map);
     		}
-    		
-    	} catch (Exception e) {
+		} catch (JSONException e) {
     		e.printStackTrace();
     	}
+
     	return instances;
 	}
 	
@@ -248,7 +234,7 @@ public class Instances_Tab extends ListActivity {
 		protected Integer doInBackground(Integer... params) {
 			// TODO Auto-generated method stub
 			int instance = params[0];
-			client.startVirtualMachine(instance);
+			cs.startVirtualMachine(instance);
 			return -1;
 		}
 
@@ -274,7 +260,7 @@ public class Instances_Tab extends ListActivity {
 		protected Integer doInBackground(Integer... params) {
 			// TODO Auto-generated method stub
 			int instance = params[0];
-			client.stopVirtualMachine(instance);
+			cs.stopVirtualMachine(instance);
 			return -1;
 		}
 		
@@ -299,7 +285,7 @@ public class Instances_Tab extends ListActivity {
 		@Override
 		protected JSONArray doInBackground(Void... params) {
 			JSONArray vms;
-			vms = client.listVirtualMachines();
+			vms = cs.listVirtualMachines();
 			return vms;
 		}
 	}
