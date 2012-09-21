@@ -224,7 +224,7 @@ private transient DefaultHttpClient client = new DefaultHttpClient();
 		}
 	}
 	
-	public JSONObject listVirtualMachines(int id) {
+	public JSONObject listVirtualMachines(String id) {
 		try {
 			String response = new executeRequest().execute(LIST_VM + "&id=" + id + JSON).get();
 			JSONObject jObject = null;
@@ -239,7 +239,7 @@ private transient DefaultHttpClient client = new DefaultHttpClient();
 		return new JSONObject();
 	}
 	
-	public JSONArray stopVirtualMachine(int id) {
+	public JSONArray stopVirtualMachine(String id) {
 		try {
 			String response = new executeRequest().execute(VM_STOP + id + JSON).get();
 
@@ -259,7 +259,7 @@ private transient DefaultHttpClient client = new DefaultHttpClient();
 		return new JSONArray();
 	}
 	
-	public JSONArray startVirtualMachine(int id) {
+	public JSONArray startVirtualMachine(String id) {
 		try {
 			String response = new executeRequest().execute(VM_START + id + JSON).get();
 			JSONObject jObject = null;
@@ -368,7 +368,7 @@ private transient DefaultHttpClient client = new DefaultHttpClient();
 		return new JSONArray();
 	}
 	
-	public JSONObject listOsTypes(Integer osId) {
+	public JSONObject listOsTypes(String osId) {
 		try {
 			String response = new executeRequest().execute(LIST_OSTYPES + "&id="+ osId + JSON).get();
 

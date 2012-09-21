@@ -32,7 +32,7 @@ public class Instances_Tab extends ListActivity {
 	private static final int CTXSTART_ID = Menu.FIRST;
 	private static final int CTXSTOP_ID = CTXSTART_ID + 1;
 	private static final int CTXDESTROY_ID = CTXSTOP_ID + 1;
-	private static final int CTXATTACH_ID = CTXSTOP_ID + 1;
+	private static final int CTXATTACH_ID = CTXDESTROY_ID + 1;
 	private static final int CTXDETACH_ID = CTXATTACH_ID + 1;
 	private static final int CTXRESETPWD_ID = CTXDETACH_ID + 1;
 	private static final int CTXCHOFFERING_ID = CTXRESETPWD_ID + 1;
@@ -43,6 +43,8 @@ public class Instances_Tab extends ListActivity {
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		
+		setContentView(R.layout.instances_list);
+		
 		progDialog = new ProgressDialog(this);
 		progDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
 		
@@ -51,12 +53,9 @@ public class Instances_Tab extends ListActivity {
     	
 		Gson gson = new Gson();
     	
-    	CSAPIexecutor cs = gson.fromJson(jsonClient, CSAPIexecutor.class);
+    	this.cs = gson.fromJson(jsonClient, CSAPIexecutor.class);
     	cs.setContext(getApplicationContext());
 		
-		setContentView(R.layout.instances_list);
-		
-		//new refresh().execute(null);
 		fillList();
 		
 		registerForContextMenu(this.getListView());	
@@ -90,12 +89,12 @@ public class Instances_Tab extends ListActivity {
 	
 	@Override
 	public void onCreateContextMenu(ContextMenu menu, View v, ContextMenuInfo menuInfo) {
-		// TODO Auto-generated method stub
 		super.onCreateContextMenu(menu, v, menuInfo);
+		
 		SimpleAdapter a = (SimpleAdapter) this.getListView().getAdapter();
 		AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
 		HashMap<String, String> mapa = (HashMap<String, String>) a.getItem(info.position);
-		int instanceID = Integer.parseInt(mapa.get("id").toString());
+		String instanceID = mapa.get("id").toString();
 		switch (getSelectedInstanceStatus(instanceID)) {
 		case 0: //Running
 			menu.add(0, CTXSTOP_ID, 0, R.string.instances_stop);
@@ -119,8 +118,7 @@ public class Instances_Tab extends ListActivity {
 	}
 
 	private void fillList() {
-		//setContentView(R.layout.instances_list);
-        List<HashMap<String, String>> inst = getInstancesList(); 
+		List<HashMap<String, String>> inst = getInstancesList(); 
         String[] from = new String[] {"instance_name", "instance_disp_name", "os_type", "offering_name", "state"};
     	int[] to = new int[] { R.id.txt_instance_name, R.id.txt_instance_name_id, R.id.txt_os_name, R.id.txt_offering_name, R.id.txt_state };
         SimpleAdapter adapter = new SimpleAdapter(this, inst, R.layout.instance_row, from, to);
@@ -151,7 +149,7 @@ public class Instances_Tab extends ListActivity {
 		return true;
 	}
 	
-	private int getSelectedInstanceStatus(int id) {
+	private int getSelectedInstanceStatus(String id) {
 		int status = -1;
 		/*SimpleAdapter a = (SimpleAdapter) this.getListView().getAdapter();
 		HashMap<String, String> mapa = (HashMap<String, String>) a.getItem(pos);
@@ -171,7 +169,7 @@ public class Instances_Tab extends ListActivity {
 		return status;
 	}
 	
-	private int hasISOAttached(int id) {
+	private int hasISOAttached(String id) {
 		int status = -1;
 		/*SimpleAdapter a = (SimpleAdapter) this.getListView().getAdapter();
 		HashMap<String, String> mapa = (HashMap<String, String>) a.getItem(pos);
@@ -188,18 +186,15 @@ public class Instances_Tab extends ListActivity {
 	private void stopInstance(int pos) {
 		SimpleAdapter a = (SimpleAdapter) this.getListView().getAdapter();
 		HashMap<String, String> mapa = (HashMap<String, String>) a.getItem(pos);
-		int instanceID = Integer.parseInt(mapa.get("id").toString());
+		String instanceID = mapa.get("id").toString();
 		new stopTask().execute(instanceID);
-		//client.stopVirtualMachine(instanceID);
 	}
 	
 	private void startInstance(int pos) {
 		SimpleAdapter a = (SimpleAdapter) this.getListView().getAdapter();
 		HashMap<String, String> mapa = (HashMap<String, String>) a.getItem(pos);
-		int instanceID = Integer.parseInt(mapa.get("id").toString());
+		String instanceID = mapa.get("id").toString();
 		new startTask().execute(instanceID);
-
-		//client.startVirtualMachine(instanceID);
 	}
 	
 	private List<HashMap<String, String>> getInstancesList() {
@@ -210,7 +205,7 @@ public class Instances_Tab extends ListActivity {
     		JSONArray vms = cs.listVirtualMachines();
     		for (int i = 0; i < vms.length(); i++) {
     			JSONObject tmpvm = (JSONObject) vms.getJSONObject(i);
-    			JSONObject ostype = (JSONObject) cs.listOsTypes(tmpvm.getInt("guestosid"));
+    			JSONObject ostype = (JSONObject) cs.listOsTypes(tmpvm.getString("guestosid"));
 
     			HashMap<String, String> map = new HashMap<String, String>();
     			map.put("instance_name", tmpvm.getString("name"));
@@ -229,11 +224,11 @@ public class Instances_Tab extends ListActivity {
     	return instances;
 	}
 	
-	private class startTask extends AsyncTask<Integer, Void, Integer> {
+	private class startTask extends AsyncTask<String, Void, Integer> {
 		@Override
-		protected Integer doInBackground(Integer... params) {
+		protected Integer doInBackground(String... params) {
 			// TODO Auto-generated method stub
-			int instance = params[0];
+			String instance = params[0];
 			cs.startVirtualMachine(instance);
 			return -1;
 		}
@@ -255,11 +250,11 @@ public class Instances_Tab extends ListActivity {
 		}
 	 }
 	
-	private class stopTask extends AsyncTask<Integer, Void, Integer> {
+	private class stopTask extends AsyncTask<String, Void, Integer> {
 		@Override
-		protected Integer doInBackground(Integer... params) {
+		protected Integer doInBackground(String... params) {
 			// TODO Auto-generated method stub
-			int instance = params[0];
+			String instance = params[0];
 			cs.stopVirtualMachine(instance);
 			return -1;
 		}
